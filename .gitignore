@@ -1,0 +1,10 @@
+__pycache__/
+.vscode/
+geoloc/
+paho.mqtt.python/
+
+client_bills.json
+log.ndjson
+logstash-config-bkup~.cfg
+_*.txt
+_*.py
