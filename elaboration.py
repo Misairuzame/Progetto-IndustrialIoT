@@ -17,13 +17,9 @@ from_date = time_scaling.get_one_week_ago_scaled() # Una settimana "simulata" fa
 # (ma anche per l'elaborazione) dei dati.
 
 while True:
-    sleep_until = time_scaling.get_time_scale()*7
-    print("-------------------------------------------")
-    print("Creating report in {} seconds".format(sleep_until))
-    print("-------------------------------------------")
-    time.sleep(sleep_until)
     clients = []
-
+    
+    # Ottenere tutti i ClientID
     url = "http://localhost:9200/clientinfo/_search"
     headers = {"Content-type": "application/json"}
     body = {
@@ -49,7 +45,8 @@ while True:
         this_client = hit["_source"]["clientinfo"]
         clients.append(this_client)
 
-    # SCROLL API
+
+    # Scroll API per ottenere molti dati di telemetria
     url = "http://localhost:9200/telemetry/_search?scroll=30s"
     headers = {"Content-type": "application/json"}
     body = {
@@ -118,9 +115,9 @@ while True:
         a_client["total-house-consumed"] = round(total_house, 4)
         gained_feeding = round(total_fed * pay_per_kwh, 2)
         a_client["gained-feeding"] = gained_feeding
-        price_consumed = round(total_grid * price_per_kwh)
+        price_consumed = round(total_grid * price_per_kwh, 2)
         a_client["price-consumed"] = price_consumed
-        total_to_pay = price_consumed - gained_feeding
+        total_to_pay = round(price_consumed - gained_feeding, 2)
         if total_to_pay < 0:
             a_client["total-to-pay"] = 0
             a_client["to-be-credited"] = total_to_pay
@@ -145,3 +142,11 @@ while True:
         headers = {"Content-type": "application/json"}
         req_insert = requests.put(billurl, headers=headers, json=bill)
         print(req_insert.json())
+    
+    # Attesa del passaggio di una settimana simulata
+    sleep_until = time_scaling.get_time_scale()*7
+    print("--------------------------------------------------------------------------------------")
+    print("Creating report in {} seconds".format(sleep_until))
+    print("Current time: {}, time for report: {}".format(time.time(), time.time()+sleep_until))
+    print("--------------------------------------------------------------------------------------")
+    time.sleep(sleep_until)

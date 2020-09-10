@@ -11,19 +11,11 @@ topic_internal2 = "internal/tofeed"
 topic_internal3 = "internal/getfrombatteries"
 topic_internal4 = "internal/getfromgrid"
 
-max_charge_wh = 5000 # Unità di misura: Wh
-# 1Wh = 1W * 1h = 1W * 3600s
-# Visto che le misurazioni vengono
-# inviate ogni 5 secondi, e sono in W (sarebbe W per 5 secondi),
-# allora possiamo definire la carica massima
-# come max_charge*Wh / (5s/3600s)
-# Così otteniamo un valore in "W" (per 5 secondi)
-
-#max_charge_w = max_charge_wh/(5/3600)
+max_charge_wh = random.randint(5, 12)*1000 # Unità di misura: Wh. Il sistema di accumulo di ogni casa
+# viene scelto casualmente fra 5 e 12 kWh.
 charge = 0.75*max_charge_wh # Per la simulazione, mettiamo come valore iniziale della carica un valore alto
 
 produced_now = 0
-
 
 my_qos = 2
 
@@ -37,7 +29,7 @@ def give_charge(to_give):
     forniscono alcuna carica.
     """
     global charge
-    if (charge-to_give) < (max_charge_wh*0.1):
+    if (charge-to_give) < (max_charge_wh*0.1): # Si scaricano le batterie fino al 10% della carica massima
         return to_give
     else:
         charge-=to_give
@@ -57,7 +49,6 @@ def charge_batteries(to_charge):
         return 0
 
 def on_connect(mqttc, obj, flags, rc):
-    #print("Connected with result code: " + str(rc))
     global topic_internal1, topic_internal2, topic_internal3, topic_internal4
     mqttc.subscribe(topic_internal1, qos=my_qos)
     mqttc.subscribe(topic_internal2, qos=my_qos)
@@ -66,7 +57,6 @@ def on_connect(mqttc, obj, flags, rc):
 
 
 def on_message(mqttc, obj, msg):
-    #print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
     global produced_now
     if msg.topic == topic_internal1:
         produced_now = struct.unpack('f', msg.payload)[0]
@@ -78,16 +68,6 @@ def on_message(mqttc, obj, msg):
         mqttc.publish(topic_internal4, struct.pack('f', float(get_from_grid)), qos=my_qos)
 
 
-def on_publish(mqttc, obj, mid):
-    #print("MsgId: " + str(mid))
-    pass
-
-
-def on_subscribe(mqttc, obj, mid, granted_qos):
-    #print("Subscribed: " + str(mid) + " " + str(granted_qos))
-    pass
-
-
 if __name__ == '__main__':
     port = 1883
     if len(sys.argv) > 1:
@@ -97,22 +77,16 @@ if __name__ == '__main__':
     mqttc = mqtt.Client(client_id=mqtt_client_name+mqtt_rand_id)
     mqttc.on_message = on_message
     mqttc.on_connect = on_connect
-    mqttc.on_publish = on_publish
-    mqttc.on_subscribe = on_subscribe
     
     mqttc.connect("localhost", port, 60)
     mqttc.loop_start()
 
     try:
-        #start_time = time.time()
         while True:
-            #start_time = time.time()
             topic = "telemetry/chargecontroller/c1"
             pkd_charge = struct.pack('f', charge)
             (rc, mid) = mqttc.publish(topic, pkd_charge, qos=my_qos)
             print(str(time.time())+"\tPub on '"+topic+"': "+str(charge)+" "+str(mid)+" Rc: "+str(rc))
-            #while time.time() < (start_time+5):
-                #pass
             time.sleep(5)
     except KeyboardInterrupt:
         mqttc.disconnect()

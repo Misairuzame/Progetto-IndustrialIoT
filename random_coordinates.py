@@ -6,7 +6,6 @@ import random
 import shapefile
 from shapely.geometry import shape, Point
 
-# function that takes a shapefile location and a country name as inputs
 def random_point_in_country(country_name):
     shp_location = "/home/zeradias/Scrivania/ProgettoIIoT/mqtt-mosquitto-client/geoloc/ne_10m_admin_0_countries"
     shapes = shapefile.Reader(shp_location+".shp", shp_location+".shx", shp_location+".dbf")

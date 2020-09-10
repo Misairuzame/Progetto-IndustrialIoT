@@ -11,7 +11,7 @@ u = []
 f = []
 p1_power = 0
 
-clientid = "8680ad46-8a83-4be2-bb40-16d08516db5d"
+clientid = "42062b61-b4f4-43c3-be30-1c8913db533d"
 
 if __name__ == '__main__':
     if(len(sys.argv) > 1):

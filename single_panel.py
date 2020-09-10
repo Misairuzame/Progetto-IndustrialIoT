@@ -12,26 +12,6 @@ import unit_conversion
 time_scale = time_scaling.get_time_scale()
 my_qos = 2
 
-def on_connect(mqttc, obj, flags, rc):
-    #print("Connected with result code: " + str(rc))
-    pass
-
-
-def on_message(mqttc, obj, msg):
-    #print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-    pass
-
-
-def on_publish(mqttc, obj, mid):
-    #print("MsgId: " + str(mid))
-    pass
-
-
-def on_subscribe(mqttc, obj, mid, granted_qos):
-    #print("Subscribed: " + str(mid) + " " + str(granted_qos))
-    pass
-
-
 def my_main(arg1):
     port = 1883
     if len(sys.argv) > 1:
@@ -39,10 +19,6 @@ def my_main(arg1):
     mqtt_client_name = "pub-panel"+arg1+"-"
     mqtt_rand_id = str(uuid.uuid4())[:23-len(mqtt_client_name)]
     mqttc = mqtt.Client(client_id=mqtt_client_name+mqtt_rand_id)
-    mqttc.on_message = on_message
-    mqttc.on_connect = on_connect
-    mqttc.on_publish = on_publish
-    mqttc.on_subscribe = on_subscribe
 
     mqttc.connect("localhost", port, 60)
     mqttc.loop_start()

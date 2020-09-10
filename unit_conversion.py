@@ -36,6 +36,3 @@ def watt_instant_to_watth(watt_istant):
 def watth_to_watt_instant(watth):
     one_simulated_hour = (1/24)*time_scaling.get_time_scale()
     return watth*one_simulated_hour/5
-
-#def battery_wh_to_w(watth):
-#   pass

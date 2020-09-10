@@ -47,16 +47,9 @@ def init_data():
     current_elmeter = {}
 
 def on_connect(client, userdata, flags, rc):
-    #print("Connected with result code "+str(rc))
-
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
     client.subscribe(topic1_name, qos=my_qos)
-    #print("Subscribed to "+topic1_name)
     client.subscribe(topic2_name, qos=my_qos)
-    #print("Subscribed to "+topic2_name)
     client.subscribe(topic3_name, qos=my_qos)
-    #print("Subscribed to "+topic3_name)
 
     # Alla connessione vengono registrati nel log i dati dell'utente, che
     # verranno poi inviati a Kafka
@@ -73,7 +66,6 @@ def on_message(client, userdata, msg):
     # si suppone che i dati inviati siano precisi fino alla terza cifra
     # decimale. Può essere un primo esempio di pre-processing.
 
-    #print("Received from topic '"+this_topic+"': "+str(measure)+" @"+str(time.time()))
     if bool(re.match('telemetry/panel/.+', this_topic)):
         panel = this_topic.replace('telemetry/panel/', '')
         current_panels[panel] = measure

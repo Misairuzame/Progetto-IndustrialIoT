@@ -1,6 +1,5 @@
 __pycache__/
 .vscode/
-geoloc/
 paho.mqtt.python/
 
 client_bills.json

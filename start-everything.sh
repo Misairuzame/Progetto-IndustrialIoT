@@ -4,21 +4,17 @@
 #echo "Sleeping 15s... Mosquitto starting"
 #sleep 15
 
-
-gnome-terminal -t "Kafka" --tab -- sh kafka-start.sh
-echo "Sleeping 15s... Kafka starting"
-sleep 15
-
-
 #gnome-terminal -t "Kafka Consumers" --tab -- sh kafka-consumers.sh
 #sleep 3
 #echo "Kafka consumers starting"
-
 
 gnome-terminal -t "Filebeat" --tab -- sh filebeat-start.sh
 sleep 20
 echo "Sleeping 20s... Filebeat starting"
 
+gnome-terminal -t "Kafka" --tab -- sh kafka-start.sh
+echo "Sleeping 15s... Kafka starting"
+sleep 15
 
 gnome-terminal -t "Logstash" --tab -- sh logstash-start.sh
 echo "Sleeping 20s... Logstash starting"
