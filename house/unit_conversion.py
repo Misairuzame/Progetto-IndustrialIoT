@@ -3,6 +3,7 @@
 # o Wh -> W
 import time_scaling
 
+
 def watt_instant_to_watth(watt_istant):
     """
     Le misurazioni vengono inviate ogni 5 secondi,
@@ -30,9 +31,10 @@ def watt_instant_to_watth(watt_istant):
     """
     # one_simulated_hour = 3600*time_scaling.get_time_scale()/86400
     # semplificata, risulta:
-    one_simulated_hour = (1/24)*time_scaling.get_time_scale()
-    return watt_istant*5/one_simulated_hour
+    one_simulated_hour = (1 / 24) * time_scaling.get_time_scale()
+    return watt_istant * 5 / one_simulated_hour
+
 
 def watth_to_watt_instant(watth):
-    one_simulated_hour = (1/24)*time_scaling.get_time_scale()
-    return watth*one_simulated_hour/5
+    one_simulated_hour = (1 / 24) * time_scaling.get_time_scale()
+    return watth * one_simulated_hour / 5

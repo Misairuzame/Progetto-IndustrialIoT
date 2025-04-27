@@ -2,16 +2,21 @@
 
 filebeat.inputs:
 
-- type: log
+- type: filestream
   enabled: true
+  id: my-log-input
   paths:
-    - /home/zeradias/Scrivania/ProgettoIIoT/mqtt-mosquitto-client/log.ndjson
+    - /app/log.ndjson
   # Le due righe sottostanti (json.*) permettono a Filebeat di validare il
   # json. In questo modo *non* viene inviata una stringa piena di escape,
   # del tipo "message": "{ \"panels\": { \"p1\": 173.3263 ... .
-  json.keys_under_root: true
-  json.add_error_key: true
-  scan_frequency: 5s
+  parsers:
+    - ndjson:
+      target: ""
+      add_error_key: true
+  #json.keys_under_root: true
+  #json.add_error_key: true
+  #scan_frequency: 5s
 
 # ============================== Filebeat modules ==============================
 
@@ -51,7 +56,7 @@ setup.kibana:
 
 # ------------------------------ Kafka Output ----------------------------------
 output.kafka:
-  hosts: ["localhost:9092"]
+  hosts: ["kafka-broker:9092"]
 
   topic: "unknown"
   topics:

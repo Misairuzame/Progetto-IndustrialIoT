@@ -1,6 +1,5 @@
 __pycache__/
-.vscode/
-paho.mqtt.python/
+venv/
 
 client_bills.json
 log.ndjson

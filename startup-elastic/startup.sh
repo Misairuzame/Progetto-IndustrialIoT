@@ -1,10 +1,30 @@
-#!/bin/bash
+#!/bin/sh
 
-curl -X PUT "localhost:9200/telemetry"
-curl -X PUT "localhost:9200/clientinfo"
-curl -X PUT "localhost:9200/elaboration"
+ELASTIC_ADDRESS="elasticsearch:9200"
 
-curl -X PUT "localhost:9200/telemetry/_mapping" -H 'Content-Type: application/json' -d'
+# Create Elastic indexes and set mappings.
+
+# Before that, delete indexes!
+curl -s -X DELETE "${ELASTIC_ADDRESS}/telemetry"
+echo ""
+
+curl -s -X DELETE "${ELASTIC_ADDRESS}/clientinfo"
+echo ""
+
+curl -s -X DELETE "${ELASTIC_ADDRESS}/elaboration"
+echo ""
+
+# Create indexes and mappings.
+curl -s -X PUT "${ELASTIC_ADDRESS}/telemetry"
+echo ""
+
+curl -s -X PUT "${ELASTIC_ADDRESS}/clientinfo"
+echo ""
+
+curl -s -X PUT "${ELASTIC_ADDRESS}/elaboration"
+echo ""
+
+curl -s -X PUT "${ELASTIC_ADDRESS}/telemetry/_mapping" -H 'Content-Type: application/json' -d'
 {
     "properties" : {
         "@timestamp": { "type": "date" },
@@ -37,8 +57,9 @@ curl -X PUT "localhost:9200/telemetry/_mapping" -H 'Content-Type: application/js
   }
 }
 '
+echo ""
 
-curl -X PUT "localhost:9200/clientinfo/_mapping" -H 'Content-Type: application/json' -d'
+curl -s -X PUT "${ELASTIC_ADDRESS}/clientinfo/_mapping" -H 'Content-Type: application/json' -d'
 {
     "properties" : {
         "clientinfo.clientid": { "type": "keyword" },
@@ -47,8 +68,9 @@ curl -X PUT "localhost:9200/clientinfo/_mapping" -H 'Content-Type: application/j
   }
 }
 '
+echo ""
 
-curl -X PUT "localhost:9200/elaboration/_mapping" -H 'Content-Type: application/json' -d'
+curl -s -X PUT "${ELASTIC_ADDRESS}/elaboration/_mapping" -H 'Content-Type: application/json' -d'
 {
     "properties" : {
         "clientinfo.clientid": { "type": "keyword" },
@@ -68,3 +90,4 @@ curl -X PUT "localhost:9200/elaboration/_mapping" -H 'Content-Type: application/
   }
 }
 '
+echo ""
