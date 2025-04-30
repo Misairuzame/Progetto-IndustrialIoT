@@ -3,8 +3,7 @@
 # Eseguire con "bash"
 # Crea 10 case
 
-if [ $# -ge 1 ];
-then
+if [ $# -ge 1 ]; then
     PORT=$1
 else
     PORT=1884

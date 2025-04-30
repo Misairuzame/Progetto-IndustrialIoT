@@ -1,8 +1,11 @@
 import json
+import os
 import time
 
 import requests
-import time_scaling
+
+ELASTIC_ADDRESS = "elasticsearch:9200"
+TIME_SCALING = int(os.getenv("TIME_SCALING", 300))
 
 price_per_kwh = 0.3  # €/kWh
 pay_per_kwh = 0.15  # €/kWh
@@ -10,7 +13,12 @@ pay_per_kwh = 0.15  # €/kWh
 # al fine della simulazione che per avere
 # una stima 100% realistica
 
-from_date = time_scaling.get_one_week_ago_scaled()  # Una settimana "simulata" fa
+
+def get_one_week_ago_scaled():
+    return time.time() - (TIME_SCALING * 7)
+
+
+from_date = get_one_week_ago_scaled()  # Una settimana "simulata" fa
 # from_date = time.time()-(86400*2), # 2 giorni "reali" fa
 
 # Al fine della simulazione poniamo una fatturazione settimanale,
@@ -21,7 +29,7 @@ while True:
     clients = []
 
     # Ottenere tutti i ClientID
-    url = "http://localhost:9200/clientinfo/_search"
+    url = f"http://{ELASTIC_ADDRESS}/clientinfo/_search"
     headers = {"Content-type": "application/json"}
     body = {
         "query": {"bool": {"must": [{"exists": {"field": "clientinfo.clientid"}}]}},
@@ -37,7 +45,7 @@ while True:
         clients.append(this_client)
 
     # Scroll API per ottenere molti dati di telemetria
-    url = "http://localhost:9200/telemetry/_search?scroll=30s"
+    url = f"http://{ELASTIC_ADDRESS}/telemetry/_search?scroll=30s"
     headers = {"Content-type": "application/json"}
     body = {
         "query": {
@@ -62,7 +70,7 @@ while True:
     hits = req_scroll_id.json()["hits"]["hits"]
     scroll_id = req_scroll_id.json()["_scroll_id"]
 
-    url = "http://localhost:9200/_search/scroll"
+    url = f"http://{ELASTIC_ADDRESS}/_search/scroll"
     headers = {"Content-type": "application/json"}
     body = {"scroll": "30s", "scroll_id": scroll_id}
 
@@ -107,10 +115,7 @@ while True:
         total_to_pay = round(price_consumed - gained_feeding, 2)
         if total_to_pay < 0:
             a_client["total-to-pay"] = 0
-            a_client["to-be-credited"] = total_to_pay
-        elif total_to_pay == 0:
-            a_client["total-to-pay"] = 0
-            a_client["to-be-credited"] = 0
+            a_client["to-be-credited"] = -total_to_pay
         else:
             a_client["total-to-pay"] = total_to_pay
             a_client["to-be-credited"] = 0
@@ -121,8 +126,8 @@ while True:
     with open("client_bills.json", "w") as billfile:
         json.dump(root_client, billfile, indent=5)
 
-    # Inserimento in Elasticsearch
-    url = "http://localhost:9200/elaboration/_doc/"
+    # Inserimento delle bollette in Elasticsearch
+    url = f"http://{ELASTIC_ADDRESS}/elaboration/_doc/"
     for bill in clients_with_bill:
         billurl = "{}{}-{}".format(
             url, bill["clientinfo"]["clientid"], bill["bill-timestamp"]
@@ -132,7 +137,7 @@ while True:
         print(req_insert.json())
 
     # Attesa del passaggio di una settimana simulata
-    sleep_until = time_scaling.get_time_scale() * 7
+    sleep_until = TIME_SCALING * 7
     print("-" * 86)
     print("Creating report in {} seconds".format(sleep_until))
     print(

@@ -16,13 +16,12 @@ services:
     volumes:
       #- "./elastic/config:/usr/share/elasticsearch/config"
       - "./elastic/config/service_tokens:/usr/share/elasticsearch/config/service_tokens"
-
       # Disabilitato, dà errore? E poi forse voglio il db vuoto ad ogni riavvio.
       #- ./elastic/elasticsearch-data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl --silent --fail elasticsearch:9200/_cluster/health || exit 1"]
+      test: [ "CMD-SHELL", "curl --silent --fail http://localhost:9200/_cluster/health || exit 1" ]
       interval: 30s
       timeout: 30s
       retries: 3
@@ -42,7 +41,7 @@ services:
     #networks:
     #  - elk
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q '302 Found'"]
+      test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q '302 Found'" ]
       interval: 10s
       timeout: 10s
       retries: 3
@@ -67,18 +66,6 @@ services:
       elasticsearch:
         condition: service_healthy
 
-  # Va messo nella "casa"
-  #filebeat:
-  #  image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
-  #  container_name: filebeat
-  #  user: root
-  #  volumes:
-  #    - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
-  #  depends_on:
-  #    - elasticsearch
-    #networks:
-    #  - elk
-  
   kafka-broker:
     image: apache/kafka:latest
     container_name: kafka-broker
@@ -98,40 +85,62 @@ services:
     #ports:
     #  - "9092:9092"
     #  - "9093:9093"
-  
+
   house:
     #container_name: house
     build:
       context: house
       args:
         - STACK_VERSION=${STACK_VERSION}
+    environment:
+      - TIME_SCALING=${TIME_SCALING}
     deploy:
       replicas: ${HOUSES}
     depends_on:
       elasticsearch:
         condition: service_healthy
+      kibana:
+        condition: service_healthy
       startup-elastic:
         condition: service_completed_successfully
       startup-kibana:
         condition: service_completed_successfully
-  
+    healthcheck:
+      test: [ "CMD-SHELL", "[ $(wc -l /app/log.ndjson | awk '{print $1}') -gt 5 ]" ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
   startup-elastic:
-    build: startup-elastic
+    build: elastic
     depends_on:
       elasticsearch:
         condition: service_healthy
-  
+
   startup-kibana:
-    build: startup-kibana
+    build: kibana
     depends_on:
       kibana:
         condition: service_healthy
 
+  elaboration:
+    build: elaboration
+    environment:
+      - TIME_SCALING=${TIME_SCALING}
+    depends_on:
+      - house
+    # Va messo nella "casa"
+    #filebeat:
+    #  image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    #  container_name: filebeat
+    #  user: root
+    #  volumes:
+    #    - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
+    #  depends_on:
+    #    - elasticsearch
+    #networks:
+    #  - elk
 
-#volumes:
-#  elasticsearch-data:
-#    driver: local
-
-#networks:
-#  elk:
-#    driver: bridge
+    #networks:
+    #  elk:
+    #    driver: bridge
