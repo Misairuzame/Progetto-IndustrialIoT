@@ -24,33 +24,55 @@ produced_now = 0
 my_qos = 2
 
 
-def give_charge(to_give):
+def give_charge(to_give: int) -> int:
     """
+    Scarica le batterie per fornire l'energia richiesta alla casa, se possibile.
+
     Se le batterie possono fornire tutta l'energia
     che serve in un certo istante, allora lo fanno,
     decrementando la variabile che traccia quanta carica
     contengono e restituendo la potenza fornita. Se non
     possono fornirla tutta, allora (per semplicità) non
     forniscono alcuna carica.
+
+    Args:
+        to_give: Quanta carica prelevare dalle batterie.
+
+    Returns:
+        0 se tutta la carica richiesta è stata fornita dalle batterie,
+        altrimenti la carica da prelevare dalla rete (per semplicità,
+        tutta quella richiesta).
     """
+
     global charge
-    # Si scaricano le batterie fino al 10% della carica massima
-    if (charge - to_give) < (max_charge_wh * 0.1):
+
+    if (charge - to_give) < 0:
         return to_give
     else:
         charge -= to_give
         return 0
 
 
-def charge_batteries(to_charge):
+def charge_batteries(to_charge: int) -> int:
     """
+    Carica le batterie del valore passato, se possibile.
+
     Se le batterie possono contenere tutta l'energia che
     gli viene mandata in un istante, allora si caricano,
-    sennò viene fornita alla rete.
+    sennò verrà fornita alla rete.
+
+    Args:
+        to_charge: Quanta carica inserire nelle batterie.
+
+    Returns:
+        0 se tutta la carica è stata inserita nelle batterie,
+        altrimenti la carica che non c'è stata (per semplicità,
+        tutta quella richiesta).
     """
+
     global charge
-    # Si caricano le batterie fino ad un massimo del 90%
-    if (charge + to_charge) > (max_charge_wh * 0.9):
+
+    if (charge + to_charge) > max_charge_wh:
         return to_charge
     else:
         charge += to_charge
@@ -95,21 +117,11 @@ if __name__ == "__main__":
     mqttc.loop_start()
 
     try:
+        topic = "telemetry/chargecontroller/c1"
         while True:
-            topic = "telemetry/chargecontroller/c1"
             pkd_charge = struct.pack("f", charge)
             (rc, mid) = mqttc.publish(topic, pkd_charge, qos=my_qos)
-            print(
-                str(time.time())
-                + "\tPub on '"
-                + topic
-                + "': "
-                + str(charge)
-                + " "
-                + str(mid)
-                + " Rc: "
-                + str(rc)
-            )
+            print(f"{time.time()}\tPub on '{topic}': {charge} {mid} Rc: {rc}")
             time.sleep(5)
     except KeyboardInterrupt:
         mqttc.disconnect()

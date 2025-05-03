@@ -42,9 +42,10 @@ def consumption_function(x):
     dei risultati significativi (fuori dal dominio la funzione
     restituisce valori completamente insensati).
     """
+
     if 0 <= x <= 24:
         return y[round(x)]  # Massimo: 1.72
-    return "Unsupported"
+    return 0
 
 
 def solar_power_function(x):
@@ -56,4 +57,4 @@ def solar_power_function(x):
             * math.exp(((-((x - 6) ** (2)))) / ((2 * 1.06 ** (2))))
         )
         # Il massimo è circa uguale a 4.5
-    return "Unsupported"
+    return 0

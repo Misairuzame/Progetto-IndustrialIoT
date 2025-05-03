@@ -1,6 +1,7 @@
-# Utility di conversione per le
-# unità di misura, es. kWh -> kW
-# o Wh -> W
+"""
+Utility di conversione per le unità di misura, es. kWh -> kW o Wh -> W
+"""
+
 import time_scaling
 
 
@@ -17,6 +18,7 @@ def watt_instant_to_watth(watt_istant):
     1 Wh = 1 W * (#secondi)/3600
     In questo esempio si avrebbe che:
     200W * 5s => 200*5/3600 = 0,2778 Wh
+
     Nel caso si stia "scalando" il tempo, al fine della
     simulazione, i valori potrebbero non essere 100% realistici,
     visto che le misurazioni vengono mandate comunque ogni 5 secondi,
@@ -25,10 +27,12 @@ def watt_instant_to_watth(watt_istant):
     realistica (se ad esempio un giorno della simulazione corrisponde
     a 5 minuti reali, abbiamo scalato il tempo di un fattore 86400/300,
     quindi 5 secondi reali corrispondono a 60 secondi della simulazione).
+
     In una giornata di 24h (86400 secondi) avremmo 86400/5 ~ 17000 misurazioni,
     in una giornata "simulata" di 300 secondi (reali) avremo quindi
     300/5 = 60 misurazioni.
     """
+
     # one_simulated_hour = 3600*time_scaling.get_time_scale()/86400
     # semplificata, risulta:
     one_simulated_hour = (1 / 24) * time_scaling.get_time_scale()

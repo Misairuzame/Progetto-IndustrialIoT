@@ -4,9 +4,8 @@ import sys
 import time
 import uuid
 
-import paho.mqtt.client as mqtt
-
 import my_functions
+import paho.mqtt.client as mqtt
 import time_scaling
 import unit_conversion
 
@@ -51,6 +50,9 @@ if __name__ == "__main__":
     mqttc.loop_start()
 
     try:
+        topic1 = "telemetry/electricpanel/consumption-grid"
+        topic2 = "telemetry/electricpanel/feeding"
+        topic3 = "telemetry/electricpanel/consumption-required"
         while True:
             now = time_scaling.get_scaled_time()
             consumption_required = unit_conversion.watt_instant_to_watth(
@@ -67,49 +69,18 @@ if __name__ == "__main__":
             )
             time.sleep(1)
 
-            topic1 = "telemetry/electricpanel/consumption-grid"
             pkd_consumption = struct.pack("f", get_from_grid)
             (rc, mid) = mqttc.publish(topic1, pkd_consumption, qos=my_qos)
-            print(
-                str(time.time())
-                + "\tPub on '"
-                + topic1
-                + "': "
-                + str(get_from_grid)
-                + " "
-                + str(mid)
-                + " Rc: "
-                + str(rc)
-            )
+            print(f"{time.time()}\tPub on '{topic1}': {get_from_grid} {mid} Rc: {rc}")
 
-            topic2 = "telemetry/electricpanel/feeding"
             pkd_feed = struct.pack("f", feed_into_grid)
             (rc, mid) = mqttc.publish(topic2, pkd_feed, qos=my_qos)
-            print(
-                str(time.time())
-                + "\tPub on '"
-                + topic2
-                + "': "
-                + str(feed_into_grid)
-                + " "
-                + str(mid)
-                + " Rc: "
-                + str(rc)
-            )
+            print(f"{time.time()}\tPub on '{topic2}': {feed_into_grid} {mid} Rc: {rc}")
 
-            topic3 = "telemetry/electricpanel/consumption-required"
             pkd_consumption_req = struct.pack("f", consumption_required)
             (rc, mid) = mqttc.publish(topic3, pkd_consumption_req, qos=my_qos)
             print(
-                str(time.time())
-                + "\tPub on '"
-                + topic3
-                + "': "
-                + str(consumption_required)
-                + " "
-                + str(mid)
-                + " Rc: "
-                + str(rc)
+                f"{time.time()}\tPub on '{topic3}': {consumption_required} {mid} Rc: {rc}"
             )
 
             time.sleep(4)

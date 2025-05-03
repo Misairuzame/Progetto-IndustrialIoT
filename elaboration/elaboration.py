@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import time
@@ -7,7 +8,7 @@ import requests
 ELASTIC_ADDRESS = "elasticsearch:9200"
 TIME_SCALING = int(os.getenv("TIME_SCALING", 300))
 
-price_per_kwh = 0.3  # €/kWh
+price_per_kwh = 0.16  # €/kWh
 pay_per_kwh = 0.15  # €/kWh
 # Valori medi, abbastanza standard, più
 # al fine della simulazione che per avere
@@ -96,13 +97,10 @@ while True:
         for hit in hits:
             if hit["_source"]["clientid"] == a_client["clientinfo"]["clientid"]:
                 try:
-                    total_fed += hit["_source"]["telemetry"]["elmeter"]["feeding"]
-                    total_grid += hit["_source"]["telemetry"]["elmeter"][
-                        "consumption-grid"
-                    ]
-                    total_house += hit["_source"]["telemetry"]["elmeter"][
-                        "consumption-required"
-                    ]
+                    hit_elmeter = hit["_source"]["telemetry"]["elmeter"]
+                    total_fed += hit_elmeter["feeding"]
+                    total_grid += hit_elmeter["consumption-grid"]
+                    total_house += hit_elmeter["consumption-required"]
                 except:
                     print("Errore nel seguente risultato: {}".format(hit["_source"]))
         a_client["fed-into-grid"] = round(total_fed, 4)
@@ -139,10 +137,11 @@ while True:
     # Attesa del passaggio di una settimana simulata
     sleep_until = TIME_SCALING * 7
     print("-" * 86)
-    print("Creating report in {} seconds".format(sleep_until))
+    print("Creating report in {} seconds (one simulated week)".format(sleep_until))
     print(
         "Current time: {}, time for report: {}".format(
-            time.time(), time.time() + sleep_until
+            datetime.datetime.fromtimestamp(time.time()),
+            datetime.datetime.fromtimestamp(time.time() + sleep_until),
         )
     )
     print("-" * 86)

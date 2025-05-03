@@ -128,7 +128,9 @@ services:
     environment:
       - TIME_SCALING=${TIME_SCALING}
     depends_on:
-      - house
+      house:
+        condition: service_healthy
+    
     # Va messo nella "casa"
     #filebeat:
     #  image: docker.elastic.co/beats/filebeat:${STACK_VERSION}

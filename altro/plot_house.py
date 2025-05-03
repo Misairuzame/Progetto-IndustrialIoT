@@ -12,29 +12,24 @@ u = []
 f = []
 p1_power = 0
 
-clientid = "42062b61-b4f4-43c3-be30-1c8913db533d"
+clientid = None
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         clientid = sys.argv[1]
-    with open("log.ndjson", "r") as logfile:
-        line = logfile.readline()
-        json_obj = json.loads(line)
-        try:
-            if json_obj["clientid"] == clientid:
-                y.append(json_obj["telemetry"]["batteries"]["total-charge"])
-                z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
-                w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
-                t.append(json_obj["telemetry"]["panels"]["total"])
-                f.append(json_obj["telemetry"]["elmeter"]["feeding"])
-                # u.append(json_obj["telemetry"]["panels"]["p1"])
-                # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
-        except:
-            pass
-        while len(line) > 0:
+    with open("../log.ndjson", "rt") as logfile:
+        for line in logfile:
             json_obj = json.loads(line)
             try:
-                if json_obj["clientid"] == clientid:
+                if clientid and json_obj["clientid"] == clientid:
+                    y.append(json_obj["telemetry"]["batteries"]["total-charge"])
+                    z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
+                    w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
+                    t.append(json_obj["telemetry"]["panels"]["total"])
+                    f.append(json_obj["telemetry"]["elmeter"]["feeding"])
+                    # u.append(json_obj["telemetry"]["panels"]["p1"])
+                    # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
+                else:
                     y.append(json_obj["telemetry"]["batteries"]["total-charge"])
                     z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
                     w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
@@ -44,7 +39,6 @@ if __name__ == "__main__":
                     # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
             except:
                 pass
-            line = logfile.readline()
 
     # print("Wh totali prodotti dal pannello p1: {}".format(p1_power))
 

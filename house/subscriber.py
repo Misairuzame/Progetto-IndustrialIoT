@@ -71,12 +71,12 @@ def on_message(client, userdata, msg):
     # si suppone che i dati inviati siano precisi fino alla terza cifra
     # decimale. Può essere un primo esempio di pre-processing.
 
-    if bool(re.match("telemetry/panel/.+", this_topic)):
+    if re.match("telemetry/panel/.+", this_topic):
         panel = this_topic.replace("telemetry/panel/", "")
         current_panels[panel] = measure
-    elif bool(re.match("telemetry/chargecontroller/.+", this_topic)):
+    elif re.match("telemetry/chargecontroller/.+", this_topic):
         current_batteries["total-charge"] = measure
-    elif bool(re.match("telemetry/electricpanel/.+", this_topic)):
+    elif re.match("telemetry/electricpanel/.+", this_topic):
         key_name = this_topic.replace("telemetry/electricpanel/", "")
         current_elmeter[key_name] = measure
 
@@ -100,9 +100,7 @@ try:
     while True:
         with open("log.ndjson", "a") as logfile:
             print(
-                "-------------------------Approx. hour of day: "
-                + str(round(time_scaling.get_scaled_time()))
-                + " (24h)-------------------------"
+                f"-------------------------Approx. hour of day: {round(time_scaling.get_scaled_time())} (24h)-------------------------"
             )
             recv_time = time.time()
             json_dict["clientid"] = client_id
