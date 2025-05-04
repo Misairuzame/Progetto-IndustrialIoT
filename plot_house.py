@@ -1,3 +1,4 @@
+import datetime
 import json
 import sys
 
@@ -10,14 +11,18 @@ w = []
 t = []
 u = []
 f = []
+x = []
 p1_power = 0
 
+log_file_path = "log.ndjson"
 clientid = None
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        clientid = sys.argv[1]
-    with open("../log.ndjson", "rt") as logfile:
+    if len(sys.argv) == 2:
+        log_file_path = sys.argv[1]
+    if len(sys.argv) == 3:
+        clientid = sys.argv[2]
+    with open(log_file_path, "rt") as logfile:
         for line in logfile:
             json_obj = json.loads(line)
             try:
@@ -27,6 +32,11 @@ if __name__ == "__main__":
                     w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
                     t.append(json_obj["telemetry"]["panels"]["total"])
                     f.append(json_obj["telemetry"]["elmeter"]["feeding"])
+                    x.append(
+                        datetime.datetime.fromtimestamp(
+                            float(json_obj["telemetry"]["timestamp"])
+                        ).strftime("%d/%m/%y %H:%M")
+                    )
                     # u.append(json_obj["telemetry"]["panels"]["p1"])
                     # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
                 else:
@@ -35,6 +45,11 @@ if __name__ == "__main__":
                     w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
                     t.append(json_obj["telemetry"]["panels"]["total"])
                     f.append(json_obj["telemetry"]["elmeter"]["feeding"])
+                    x.append(
+                        datetime.datetime.fromtimestamp(
+                            float(json_obj["telemetry"]["timestamp"])
+                        ).strftime("%d/%m/%y %H:%M")
+                    )
                     # u.append(json_obj["telemetry"]["panels"]["p1"])
                     # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
             except:
@@ -43,12 +58,12 @@ if __name__ == "__main__":
     # print("Wh totali prodotti dal pannello p1: {}".format(p1_power))
 
     print(
-        "Len(y): {}, Len(z): {}, Len(w): {}, Len(t): {}, Len(f): {}".format(
-            len(y), len(z), len(w), len(t), len(f)
+        "Len(y): {}, Len(z): {}, Len(w): {}, Len(t): {}, Len(f): {}, Len(x): {}".format(
+            len(y), len(z), len(w), len(t), len(f), len(x)
         )
     )
 
-    min_len = np.min([len(y), len(z), len(w), len(t), len(f)])
+    min_len = np.min([len(y), len(z), len(w), len(t), len(f), len(x)])
     print("Min len: {}".format(min_len))
 
     y = y[:min_len]
@@ -56,8 +71,9 @@ if __name__ == "__main__":
     w = w[:min_len]
     t = t[:min_len]
     f = f[:min_len]
+    x = x[:min_len]
 
-    x = np.linspace(0, stop=min_len, num=min_len)
+    # x = np.linspace(0, stop=min_len, num=min_len)
 
     # Carica del sistema di accumulo
     (line1,) = plt.plot(x, y, "-", color="royalblue", label="Batteries charge")
@@ -71,6 +87,7 @@ if __name__ == "__main__":
     # line5, = plt.plot(x, u, '-', color='magenta', label="Panel 'p1' production")
     # Immissione in rete (feeding)
     (line6,) = plt.plot(x, f, "-", color="limegreen", label="Feeding into grid")
+    plt.xticks(rotation=90)
     plt.plot()
     plt.legend()
     plt.show()

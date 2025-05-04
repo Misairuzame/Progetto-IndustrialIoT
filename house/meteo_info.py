@@ -6,6 +6,8 @@ import requests
 # Per la simulazione si è deciso di restituire
 # semplicemente un valore casuale della nuvolosità
 
+# TODO: API OpenMeteo!
+
 api_key = os.getenv("WEATHER_API_KEY", "")
 current_weather = {}
 

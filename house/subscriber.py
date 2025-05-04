@@ -1,3 +1,4 @@
+import datetime
 import json
 import re
 import struct
@@ -7,7 +8,6 @@ import uuid
 
 import paho.mqtt.client as mqtt
 import random_coordinates
-import time_scaling
 from faker import Faker
 
 
@@ -16,7 +16,6 @@ def get_full_name():
     return fake.name()
 
 
-time_scale = time_scaling.get_time_scale()
 client_id = str(uuid.uuid4())
 client_name = get_full_name()
 (longitude, latitude) = random_coordinates.random_point_in_country("Italy")
@@ -87,52 +86,34 @@ if len(sys.argv) > 1:
 
 mqtt_client_name = "sub-contatore-"
 mqtt_rand_id = str(uuid.uuid4())[: 23 - len(mqtt_client_name)]
-client = mqtt.Client(client_id=mqtt_client_name + mqtt_rand_id, clean_session=False)
-client.on_connect = on_connect
-client.on_message = on_message
+mqttc = mqtt.Client(client_id=mqtt_client_name + mqtt_rand_id, clean_session=False)
+mqttc.on_connect = on_connect
+mqttc.on_message = on_message
 
-client.connect("localhost", port, 60)
+mqttc.connect("localhost", port, 60)
 init_data()
+mqttc.loop_start()
 
-try:
-    client.loop_start()
 
-    while True:
-        with open("log.ndjson", "a") as logfile:
-            print(
-                f"-------------------------Approx. hour of day: {round(time_scaling.get_scaled_time())} (24h)-------------------------"
-            )
-            recv_time = time.time()
-            json_dict["clientid"] = client_id
-            json_dict["telemetry"] = {}
-            json_dict["telemetry"]["panels"] = current_panels
-            json_dict["telemetry"]["batteries"] = current_batteries
-            json_dict["telemetry"]["elmeter"] = current_elmeter
-            json_dict["telemetry"]["timestamp"] = recv_time
-            tot_prod = 0
-            for key, value in current_panels.items():
-                tot_prod += value
-            json_dict["telemetry"]["panels"]["total"] = round(tot_prod, 4)
-            # Round permette di evitare errori di calcolo con i float
-            # (spesso si hanno risultati del tipo 1234.5678999999999)
-            client.publish(topic_internal1, struct.pack("f", tot_prod), qos=my_qos)
-            init_data()
-            json.dump(json_dict, logfile)
-            logfile.write("\n")
+def update(*args):
+    now: datetime.datetime = args[0]
+    with open("log.ndjson", "a") as logfile:
+        json_dict["clientid"] = client_id
+        json_dict["telemetry"] = {}
+        json_dict["telemetry"]["panels"] = current_panels
+        json_dict["telemetry"]["batteries"] = current_batteries
+        json_dict["telemetry"]["elmeter"] = current_elmeter
+        json_dict["telemetry"]["timestamp"] = now.timestamp()
+        tot_prod = 0
+        for key, value in current_panels.items():
+            tot_prod += value
+        json_dict["telemetry"]["panels"]["total"] = round(tot_prod, 4)
+        # Round permette di evitare errori di calcolo con i float
+        # (spesso si hanno risultati del tipo 1234.5678999999999)
+        mqttc.publish(topic_internal1, struct.pack("f", tot_prod), qos=my_qos)
+        init_data()
+        json.dump(json_dict, logfile)
+        logfile.write("\n")
 
-            json_write = json.dumps(json_dict, indent=4)
-            print(json_write)
-
-            time.sleep(recv_time + 5 - time.time())
-            # In questo modo si (prova a) mantenere
-            # il contatore in sincrono con il resto
-            # dei sensori, anche se dovesse fare operazioni
-            # sufficientemente lunghe da mandare fuori sincrono
-            # i cicli di ricezione/invio. In una applicazione reale
-            # questo metodo non è molto sicuro, bisognerebbe sincronizzare
-            # appropriatamente tutti i componenti dell'impianto.
-except KeyboardInterrupt:
-    client.loop_stop()
-    client.disconnect()
-    print("Subscriber electric meter exiting...")
-    sys.exit()
+        json_write = json.dumps(json_dict)
+        print(f"{time.time()}\t{__name__}\t{json_write}")

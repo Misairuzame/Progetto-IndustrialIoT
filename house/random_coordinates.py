@@ -11,7 +11,9 @@ from shapely.geometry import Point, shape
 def random_point_in_country(country_name):
     shp_location = "./geoloc/ne_10m_admin_0_countries"
     shapes = shapefile.Reader(
-        shp_location + ".shp", shp_location + ".shx", shp_location + ".dbf"
+        shp_location + ".shp",
+        shp_location + ".shx",
+        shp_location + ".dbf",
     )
     country = [s for s in shapes.records() if country_name in s][0]
     country_id = int(re.findall(r"\d+", str(country))[0])
