@@ -25,8 +25,6 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
-    #networks:
-    #  - elk
 
   kibana:
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
@@ -38,8 +36,6 @@ services:
       - ELASTICSEARCH_SERVICEACCOUNTTOKEN=AAEAAWVsYXN0aWMva2liYW5hL2VsYXN0aWMta2liYW5hLXRva2VuOjMwclV3THZjUWw2aW54WDFDX3RmX3c
     ports:
       - "5601:5601"
-    #networks:
-    #  - elk
     healthcheck:
       test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q '302 Found'" ]
       interval: 10s
@@ -60,8 +56,6 @@ services:
     ports:
       - "5044:5044"
       - "9600:9600"
-    #networks:
-    #  - elk
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -140,9 +134,3 @@ services:
     #    - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
     #  depends_on:
     #    - elasticsearch
-    #networks:
-    #  - elk
-
-    #networks:
-    #  elk:
-    #    driver: bridge

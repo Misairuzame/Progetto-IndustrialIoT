@@ -19,6 +19,9 @@ char_contr = charge_controller.ChargeController()
 # Quadro elettrico
 el_panel = electric_panel.ElectricPanel(simulation_start)
 
+# Subscriber (gateway)
+subscr = subscriber.Subscriber()
+
 # Pannelli solari
 num_of_panels = 0
 
@@ -41,7 +44,7 @@ tm.subscribe(char_contr)
 tm.subscribe(el_panel)
 for panel in solar_panels:
     tm.subscribe(panel)
-tm.subscribe(subscriber)
+tm.subscribe(subscr)
 
 # Avvia la simulazione (il parametro opzionale steps indica quanti step effettuare
 # della simulazione, se non viene passato è None e non c'è limite alla simulazione)

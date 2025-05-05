@@ -8,15 +8,15 @@ import uuid
 import my_functions
 import paho.mqtt.client as mqtt
 
+topic1 = "telemetry/electricpanel/consumption-grid"
+topic2 = "telemetry/electricpanel/feeding"
+topic3 = "telemetry/electricpanel/consumption-required"
+
 topic_internal1 = "internal/tofeed"
 topic_internal2 = "internal/getfrombatteries"
 topic_internal3 = "internal/getfromgrid"
 
 my_qos = 2
-
-topic1 = "telemetry/electricpanel/consumption-grid"
-topic2 = "telemetry/electricpanel/feeding"
-topic3 = "telemetry/electricpanel/consumption-required"
 
 
 class ElectricPanel:

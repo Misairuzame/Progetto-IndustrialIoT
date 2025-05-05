@@ -5,6 +5,8 @@ import uuid
 
 import paho.mqtt.client as mqtt
 
+topic = "telemetry/chargecontroller/c1"
+
 topic_internal1 = "internal/totalpanels"
 topic_internal2 = "internal/tofeed"
 topic_internal3 = "internal/getfrombatteries"
@@ -31,7 +33,6 @@ class ChargeController:
         self.mqttc.on_message = self.on_message
         self.mqttc.on_connect = self.on_connect
         self.mqttc.connect("localhost", port, 60)
-        self.topic = "telemetry/chargecontroller/c1"
         self.mqttc.loop_start()
 
     def on_connect(self, mqttc, obj, flags, rc, properties):
@@ -105,5 +106,5 @@ class ChargeController:
 
     def update(self, *args):
         pkd_charge = struct.pack("f", self.charge)
-        _ = self.mqttc.publish(self.topic, pkd_charge, qos=my_qos)
-        print(f"{time.time()}\t{__name__}\tPub on '{self.topic}': {self.charge}")
+        _ = self.mqttc.publish(topic, pkd_charge, qos=my_qos)
+        print(f"{time.time()}\t{__name__}\tPub on '{topic}': {self.charge}")
