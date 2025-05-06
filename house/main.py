@@ -1,4 +1,6 @@
+import os
 import random
+import re
 from datetime import datetime, timedelta
 
 import charge_controller
@@ -7,10 +9,43 @@ import solar_panel
 import subscriber
 from time_manager import TimeManager
 
-simulation_start = datetime(2025, 1, 1, 0, 0)
+
+def parse_hours_minutes(time_str: str):
+    # pattern = re.compile(r"(\d+)\s*(hour|hours|minute|minutes)", re.IGNORECASE)
+    # matches = pattern.findall(time_str)
+    matches = re.findall(
+        r"(\d+)\s*(hour|hours|minute|minutes)", time_str, re.IGNORECASE
+    )
+
+    hours = 0
+    minutes = 0
+
+    for value, unit in matches:
+        if "hour" in unit.lower():
+            hours += int(value)
+        elif "minute" in unit.lower():
+            minutes += int(value)
+
+    return timedelta(hours=hours, minutes=minutes)
+
+
+# datetime(2025, 1, 1, 0, 0)
+simulation_start = datetime.strptime(
+    os.getenv("SIMULATION_START", "2025-01-01 00:00"),
+    "%Y-%m-%d %H:%M",
+)
+
+# timedelta(hours=1)
+simulation_step = parse_hours_minutes(os.getenv("SIMULATION_STEP", "1 hour"))
+
+# 5
+simulation_speed = float(os.getenv("SIMULATION_SPEED", 5.0))
+
+# 0
+simulation_how_many_steps = int(os.getenv("SIMULATION_HOW_MANY_STEPS", 0))
 
 # Inizializza il time manager
-tm = TimeManager(start=simulation_start, dt=timedelta(hours=1), speed=5)
+tm = TimeManager(start=simulation_start, step=simulation_step, speed=simulation_speed)
 
 # Crea i moduli
 # Controller di carica
@@ -48,4 +83,4 @@ tm.subscribe(subscr)
 
 # Avvia la simulazione (il parametro opzionale steps indica quanti step effettuare
 # della simulazione, se non viene passato è None e non c'è limite alla simulazione)
-tm.run()
+tm.run(steps=simulation_how_many_steps)

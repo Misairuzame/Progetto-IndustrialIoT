@@ -1,7 +1,6 @@
 import datetime
 import random
 import struct
-import sys
 import time
 import uuid
 
@@ -66,7 +65,6 @@ class ElectricPanel:
         print(
             f"{time.time()}\t{__name__}\tPub on '{topic_internal2}': {consumption_required}"
         )
-        # time.sleep(1)
 
         pkd_consumption = struct.pack("f", self.get_from_grid)
         _ = self.mqttc.publish(topic1, pkd_consumption, qos=my_qos)

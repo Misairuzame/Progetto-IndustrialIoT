@@ -10,9 +10,8 @@ TIME_SCALING = int(os.getenv("TIME_SCALING", 300))
 
 price_per_kwh = 0.3  # €/kWh
 pay_per_kwh = 0.15  # €/kWh
-# Valori medi, abbastanza standard, più
-# al fine della simulazione che per avere
-# una stima 100% realistica
+# Valori medi, abbastanza standard, più al fine della simulazione
+# che per avere una stima 100% realistica
 
 
 def get_one_week_ago_scaled():

@@ -88,6 +88,10 @@ services:
         - STACK_VERSION=${STACK_VERSION}
     environment:
       - TIME_SCALING=${TIME_SCALING}
+      - SIMULATION_START=${SIMULATION_START}
+      - SIMULATION_STEP=${SIMULATION_STEP}
+      - SIMULATION_SPEED=${SIMULATION_SPEED}
+      - SIMULATION_HOW_MANY_STEPS=${SIMULATION_HOW_MANY_STEPS}
     deploy:
       replicas: ${HOUSES}
     depends_on:
@@ -121,6 +125,9 @@ services:
     build: elaboration
     environment:
       - TIME_SCALING=${TIME_SCALING}
+      - SIMULATION_START=${SIMULATION_START}
+      - SIMULATION_STEP=${SIMULATION_STEP}
+      - SIMULATION_SPEED=${SIMULATION_SPEED}
     depends_on:
       house:
         condition: service_healthy

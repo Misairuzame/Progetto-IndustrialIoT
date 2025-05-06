@@ -2,7 +2,6 @@ import datetime
 import json
 import re
 import struct
-import sys
 import time
 import uuid
 
