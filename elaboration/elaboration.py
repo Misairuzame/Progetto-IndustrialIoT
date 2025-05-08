@@ -1,12 +1,12 @@
 import datetime
 import json
 import os
+import re
 import time
 
 import requests
 
 ELASTIC_ADDRESS = "elasticsearch:9200"
-TIME_SCALING = int(os.getenv("TIME_SCALING", 300))
 
 price_per_kwh = 0.3  # €/kWh
 pay_per_kwh = 0.15  # €/kWh
@@ -14,18 +14,75 @@ pay_per_kwh = 0.15  # €/kWh
 # che per avere una stima 100% realistica
 
 
-def get_one_week_ago_scaled():
-    return time.time() - (TIME_SCALING * 7)
+def parse_hours_minutes(time_str: str):
+    matches = re.findall(
+        r"(\d+)\s*(hour|hours|minute|minutes)", time_str, re.IGNORECASE
+    )
+
+    hours = 0
+    minutes = 0
+
+    for value, unit in matches:
+        if "hour" in unit.lower():
+            hours += int(value)
+        elif "minute" in unit.lower():
+            minutes += int(value)
+
+    return datetime.timedelta(hours=hours, minutes=minutes)
 
 
-from_date = get_one_week_ago_scaled()  # Una settimana "simulata" fa
-# from_date = time.time()-(86400*2), # 2 giorni "reali" fa
+simulation_start = datetime.datetime.strptime(
+    os.getenv("SIMULATION_START", "2025-01-01 00:00"),
+    "%Y-%m-%d %H:%M",
+)
+simulation_step = parse_hours_minutes(os.getenv("SIMULATION_STEP", "1 hour"))
+simulation_speed = float(os.getenv("SIMULATION_SPEED", 5.0))
+
+one_simulated_week_in_real_seconds = (
+    (7 * 24 * 60 * 60) / simulation_step.seconds
+) * simulation_speed
+
+current = simulation_start
+
 
 # Al fine della simulazione poniamo una fatturazione settimanale,
 # in modo da non dover aspettare troppo tempo per la raccolta
 # (ma anche per l'elaborazione) dei dati.
 
+
+def print_and_sleep():
+    print("-" * 86)
+    print(
+        "Creating report in {} seconds (one simulated week)".format(
+            one_simulated_week_in_real_seconds
+        )
+    )
+    print(
+        "Current real time: {}, real time for next report: {}".format(
+            datetime.datetime.fromtimestamp(int(time.time())),
+            datetime.datetime.fromtimestamp(
+                int(time.time()) + one_simulated_week_in_real_seconds
+            ),
+        )
+    )
+    print("-" * 86)
+    time.sleep(one_simulated_week_in_real_seconds)
+
+
+# print_and_sleep()
+
 while True:
+    from_date = current.timestamp()
+
+    # Attesa del passaggio di una settimana simulata
+    print_and_sleep()
+
+    # Forse ha più senso:
+    # current = from_date + datetime.timedelta(days=7)
+    # ? Ma verificare i tipi!
+    current = current + datetime.timedelta(days=7)
+    print("Current simulated time:", current.strftime("%Y-%m-%d %H:%M:%s"))
+
     clients = []
 
     # Ottenere tutti i ClientID
@@ -45,6 +102,7 @@ while True:
         clients.append(this_client)
 
     # Scroll API per ottenere molti dati di telemetria
+    # Il parametro scroll indica per quanto tempo Elastic deve mantenere il contesto dello scroll
     url = f"http://{ELASTIC_ADDRESS}/telemetry/_search?scroll=30s"
     headers = {"Content-type": "application/json"}
     body = {
@@ -56,7 +114,7 @@ while True:
                         "range": {
                             "telemetry.timestamp": {
                                 "gte": from_date,
-                                "lte": time.time(),
+                                "lte": current.timestamp(),
                             }
                         }
                     },
@@ -88,7 +146,7 @@ while True:
     for client in clients:
         a_client = {}
         a_client["clientinfo"] = client
-        a_client["bill-timestamp"] = int(time.time())
+        a_client["bill-timestamp"] = int(current.timestamp())
         a_client["period"] = "1w"
         total_fed = 0
         total_grid = 0
@@ -123,6 +181,8 @@ while True:
     with open("client_bills.json", "w") as billfile:
         json.dump(root_client, billfile, indent=5)
 
+    print(clients_with_bill)
+
     # Inserimento delle bollette in Elasticsearch
     url = f"http://{ELASTIC_ADDRESS}/elaboration/_doc/"
     for bill in clients_with_bill:
@@ -132,16 +192,3 @@ while True:
         headers = {"Content-type": "application/json"}
         req_insert = requests.put(billurl, headers=headers, json=bill)
         print(req_insert.json())
-
-    # Attesa del passaggio di una settimana simulata
-    sleep_until = TIME_SCALING * 7
-    print("-" * 86)
-    print("Creating report in {} seconds (one simulated week)".format(sleep_until))
-    print(
-        "Current time: {}, time for report: {}".format(
-            datetime.datetime.fromtimestamp(time.time()),
-            datetime.datetime.fromtimestamp(time.time() + sleep_until),
-        )
-    )
-    print("-" * 86)
-    time.sleep(sleep_until)

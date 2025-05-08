@@ -3,3 +3,5 @@ requests
 Faker
 pyshp
 shapely
+print-color
+aiofiles

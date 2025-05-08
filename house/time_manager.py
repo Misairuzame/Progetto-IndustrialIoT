@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime, timedelta
 
@@ -30,15 +31,16 @@ class TimeManager:
     def subscribe(self, module):
         self.subscribers.append(module)
 
-    def tick(self):
-        for s in self.subscribers:
-            s.update(self.current)
+    async def tick(self):
+        # for s in self.subscribers:
+        #    s.update(self.current)
+        await asyncio.gather(*(s.update(self.current) for s in self.subscribers))
         self.current += self.step
 
-    def run(self, steps=None):
+    async def run(self, steps=None):
         i = 0
         while not steps or i < steps:
             print(f"\n[TICK] Simulated time: {self.current}")
-            self.tick()
+            await self.tick()
             time.sleep(self.speed)
             i += 1

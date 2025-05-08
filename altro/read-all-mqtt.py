@@ -5,11 +5,6 @@ import uuid
 
 import paho.mqtt.client as mqtt
 
-topic1_name = "telemetry/panel/#"
-topic2_name = "telemetry/chargecontroller/#"
-topic3_name = "telemetry/electricpanel/#"
-topic_internal1 = "internal/totalpanels"
-
 my_qos = 2
 
 
@@ -41,12 +36,10 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 client.connect("localhost", port, 60)
-
+client.loop_start()
 
 if __name__ == "__main__":
     try:
-        client.loop_start()
-
         while True:
             time.sleep(1)
     except KeyboardInterrupt:

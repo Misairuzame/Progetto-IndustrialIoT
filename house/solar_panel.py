@@ -7,6 +7,12 @@ import uuid
 import meteo_info
 import my_functions
 import paho.mqtt.client as mqtt
+from print_color import print as prnt
+
+
+def print(*args):
+    prnt(*args, color="green")
+
 
 my_qos = 2
 
@@ -31,7 +37,7 @@ class SolarPanel:
         self.topic = "telemetry/panel/p" + str(self.panel_id)
         self.mqttc.loop_start()
 
-    def update(self, *args):
+    async def update(self, *args):
         # Viene inviato un dato float "grezzo", che si ritiene sia
         # preciso fino alla terza cifra decimale; dalla quarta in poi
         # verrà arrotondato dal subscriber.

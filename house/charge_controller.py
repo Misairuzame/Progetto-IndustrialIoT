@@ -1,16 +1,23 @@
+import asyncio
 import random
 import struct
 import time
 import uuid
 
 import paho.mqtt.client as mqtt
+from print_color import print as prnt
 
-topic = "telemetry/chargecontroller/c1"
 
-topic_internal1 = "internal/totalpanels"
-topic_internal2 = "internal/tofeed"
-topic_internal3 = "internal/getfrombatteries"
-topic_internal4 = "internal/getfromgrid"
+def print(*args):
+    prnt(*args, color="red")
+
+
+topic_charge = "telemetry/chargecontroller/c1"
+
+topic_internal_totalpanels = "internal/totalpanels"
+topic_internal_tofeed = "internal/tofeed"
+topic_internal_getfrombatteries = "internal/getfrombatteries"
+topic_internal_getfromgrid = "internal/getfromgrid"
 
 my_qos = 2
 
@@ -33,27 +40,43 @@ class ChargeController:
         self.mqttc.on_message = self.on_message
         self.mqttc.on_connect = self.on_connect
         self.mqttc.connect("localhost", port, 60)
+
+        self.recv_totalpanels_event = asyncio.Event()
+        self.recv_getfrombatteries_event = asyncio.Event()
+
+        self.loop = asyncio.get_event_loop()
+
         self.mqttc.loop_start()
 
     def on_connect(self, mqttc, obj, flags, rc, properties):
-        mqttc.subscribe(topic_internal1, qos=my_qos)
-        mqttc.subscribe(topic_internal2, qos=my_qos)
-        mqttc.subscribe(topic_internal3, qos=my_qos)
-        mqttc.subscribe(topic_internal4, qos=my_qos)
+        mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
+        mqttc.subscribe(topic_internal_getfrombatteries, qos=my_qos)
 
     def on_message(self, mqttc, obj, msg):
-        if msg.topic == topic_internal1:
+        if msg.topic == topic_internal_totalpanels:
             produced_now = struct.unpack("f", msg.payload)[0]
             feed_into_grid = self.charge_batteries(produced_now)
             mqttc.publish(
-                topic_internal2, struct.pack("f", float(feed_into_grid)), qos=my_qos
+                topic_internal_tofeed,
+                struct.pack("f", float(feed_into_grid)),
+                qos=my_qos,
             )
-        elif msg.topic == topic_internal3:
+            print(
+                f"{time.time()}\t{__name__}\tPub on '{topic_internal_tofeed}': {feed_into_grid}"
+            )
+            self.loop.call_soon_threadsafe(self.recv_totalpanels_event.set)
+        elif msg.topic == topic_internal_getfrombatteries:
             to_give = struct.unpack("f", msg.payload)[0]
             get_from_grid = self.give_charge(to_give)
             mqttc.publish(
-                topic_internal4, struct.pack("f", float(get_from_grid)), qos=my_qos
+                topic_internal_getfromgrid,
+                struct.pack("f", float(get_from_grid)),
+                qos=my_qos,
             )
+            print(
+                f"{time.time()}\t{__name__}\tPub on '{topic_internal_getfromgrid}': {get_from_grid}"
+            )
+            self.loop.call_soon_threadsafe(self.recv_getfrombatteries_event.set)
 
     def give_charge(self, to_give: int) -> int:
         """
@@ -74,7 +97,6 @@ class ChargeController:
             altrimenti la carica da prelevare dalla rete (per semplicità,
             tutta quella richiesta).
         """
-
         if (self.charge - to_give) < 0:
             return to_give
         else:
@@ -97,14 +119,20 @@ class ChargeController:
             altrimenti la carica che non c'è stata (per semplicità,
             tutta quella richiesta).
         """
-
         if (self.charge + to_charge) > self.max_charge_wh:
             return to_charge
         else:
             self.charge += to_charge
             return 0
 
-    def update(self, *args):
+    async def update(self, *args):
+        await asyncio.gather(
+            self.recv_getfrombatteries_event.wait(),
+            self.recv_totalpanels_event.wait(),
+        )
+
         pkd_charge = struct.pack("f", self.charge)
-        _ = self.mqttc.publish(topic, pkd_charge, qos=my_qos)
-        print(f"{time.time()}\t{__name__}\tPub on '{topic}': {self.charge}")
+        _ = self.mqttc.publish(topic_charge, pkd_charge, qos=my_qos)
+        print(f"{time.time()}\t{__name__}\tPub on '{topic_charge}': {self.charge}")
+        self.recv_getfrombatteries_event.clear()
+        self.recv_totalpanels_event.clear()

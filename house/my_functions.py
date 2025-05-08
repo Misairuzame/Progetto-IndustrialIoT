@@ -1,6 +1,17 @@
 import math
 from datetime import datetime, timedelta
 
+"""
+How Many Watts Does a House Use Per Day, Month, and Year?
+The average energy consumption per household is around 800 to 1,000 kilowatts-hour per month,
+totaling approximately 9,600 to 12,000 kWh annually. When divided by the number of days in a year,
+this translates to an average daily energy consumption of about 26 to 33 kWh. 
+
+The average electricity rate in the US is about 16.6 cents per kWh, so, for a daily 26 to 33 kWh
+energy use, the electricity bill should be $4.32 to $5.48 per day, $132.8 to $166 per month, and
+$1593.6 to $1992 per year.
+"""
+
 y = [
     0.5,  # 0:00
     0.5,
@@ -86,7 +97,7 @@ def solar_power_function(x):
         return (
             12
             / math.sqrt(((2 * math.pi) * 1.06**2))
-            * math.exp(((-((x - 6) ** (2)))) / ((2 * 1.06 ** (2))))
+            * math.exp(((-((x - 6) ** 2))) / ((2 * 1.06**2)))
         )
         # Il massimo è circa uguale a 4.5
     return 0
@@ -140,47 +151,92 @@ def calcola_produzione_pannello(
     while current_time < end_time:
         # Calcola produzione istantanea
         hour_float = current_time.hour + current_time.minute / 60
-        inst_power_kW = (
-            solar_power_function(hour_float) * (max_panel_production / 4.5) / 1000
-        )  # in kW
+        inst_power_kWh = solar_power_function(hour_float) * (max_panel_production / 4.5)
 
         # Calcola energia per questo intervallo e somma
-        energy_wh = inst_power_kW * (step_minutes / 60) * 1000  # kW x h x 1000 = Wh
-        total_production += energy_wh
+        energy_kWh = inst_power_kWh * (step_minutes / 60)
+        total_production += energy_kWh
 
         current_time += step
 
     return total_production
 
 
-def calcola_consumo_intervallo(start_time: datetime, end_time: datetime) -> float:
-    """
-    Calcola il consumo energetico (in kWh) tra due istanti arbitrari.
-    Assume consumo costante all'interno di ogni ora.
+# def calcola_consumo_intervallo(start_time: datetime, end_time: datetime) -> float:
+#     """
+#     Calcola il consumo energetico (in kWh) tra due istanti arbitrari.
+#     Assume consumo costante all'interno di ogni ora.
 
-    :param start_time: datetime di inizio
-    :param end_time: datetime di fine
-    :return: consumo totale in kWh
+#     :param start_time: datetime di inizio
+#     :param end_time: datetime di fine
+#     :return: consumo totale in kWh
+#     """
+#     if end_time <= start_time:
+#         return 0.0
+
+#     consumo_totale = 0.0
+#     current_time = start_time
+
+#     while current_time < end_time:
+#         next_time = min(
+#             (current_time + timedelta(hours=1)).replace(
+#                 minute=0, second=0, microsecond=0
+#             ),
+#             end_time,
+#         )
+#         durata_minuti = (next_time - current_time).total_seconds() / 60
+#         ora_corrente = current_time.hour
+
+#         consumo_ora = y[ora_corrente % 24]  # modulo 24 per sicurezza
+#         # proporzione di consumo orario
+#         consumo_totale += consumo_ora * (durata_minuti / 60)
+
+#         current_time = next_time
+
+#     return consumo_totale
+
+
+def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
+    """
+    Calcola il consumo istantaneo interpolando linearmente tra i valori nella lista `y`.
+
+    :param ora_frazionaria: orario come numero decimale, es. 13.5 per 13:30
+    :return: consumo istantaneo in kWh
+    """
+    h0 = int(ora_frazionaria) % 24
+    h1 = (h0 + 1) % 24
+    frazione = ora_frazionaria - h0
+
+    return y[h0] + (y[h1] - y[h0]) * frazione
+
+
+def calcola_consumo_intervallo(
+    start_time: datetime,
+    end_time: datetime,
+    step_minutes: int = 1,
+) -> float:
+    """
+    Calcola il consumo totale integrando a piccoli passi e interpolando i consumi orari.
+
+    :param start_time: datetime inizio
+    :param end_time: datetime fine
+    :param step_minutes: passo temporale per l'integrazione (default: 1 minuto)
+    :return: consumo in kWh
     """
     if end_time <= start_time:
         return 0.0
 
     consumo_totale = 0.0
     current_time = start_time
+    step = timedelta(minutes=step_minutes)
 
     while current_time < end_time:
-        next_time = min(
-            (current_time + timedelta(hours=1)).replace(
-                minute=0, second=0, microsecond=0
-            ),
-            end_time,
-        )
-        durata_minuti = (next_time - current_time).total_seconds() / 60
-        ora_corrente = current_time.hour
+        next_time = min(current_time + step, end_time)
+        durata_ore = (next_time - current_time).total_seconds() / 3600
+        ora_frazionaria = current_time.hour + current_time.minute / 60
 
-        consumo_ora = y[ora_corrente % 24]  # modulo 24 per sicurezza
-        # proporzione di consumo orario
-        consumo_totale += consumo_ora * (durata_minuti / 60)
+        consumo_ist = consumo_istantaneo_orario_interpolato(ora_frazionaria)
+        consumo_totale += consumo_ist * durata_ore
 
         current_time = next_time
 
@@ -225,6 +281,34 @@ if __name__ == "__main__":
     start = datetime(2024, 1, 1, 14, 13)
     end = datetime(2024, 1, 2, 14, 13)
     print(f"Consumo stimato 24h (2): {calcola_consumo_intervallo(start, end)=} kWh")
+
+    start = datetime(2024, 1, 1, 0, 0)
+    end = datetime(2024, 1, 2, 0, 0)
+    step = timedelta(hours=1)
+    nxt = start
+    curr = start
+    tot = 0
+    while curr < end:
+        nxt += step
+        tot += calcola_consumo_intervallo(curr, nxt)
+        curr = nxt
+    print(f"Consumo stimato 24h (3): {tot=}")
+
+    start = datetime(2024, 1, 1, 0, 0)
+    end = datetime(2024, 1, 8, 0, 0)
+    print(f"Consumo stimato 1 settimana: {calcola_consumo_intervallo(start, end)=} kWh")
+
+    start = datetime(2024, 1, 1, 0, 0)
+    end = datetime(2024, 1, 8, 0, 0)
+    step = timedelta(hours=1)
+    nxt = start
+    curr = start
+    tot = 0
+    while curr < end:
+        nxt += step
+        tot += calcola_consumo_intervallo(curr, nxt)
+        curr = nxt
+    print(f"Consumo stimato 1 settimana (2): {tot=}")
 
     max_panel_production = 250
 

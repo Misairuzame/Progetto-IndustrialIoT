@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import re
@@ -5,9 +6,15 @@ import struct
 import time
 import uuid
 
+import aiofiles
 import paho.mqtt.client as mqtt
 import random_coordinates
 from faker import Faker
+from print_color import print as prnt
+
+
+def print(*args):
+    prnt(*args, color="purple")
 
 
 def get_full_name():
@@ -15,11 +22,14 @@ def get_full_name():
     return fake.name()
 
 
-topic1_name = "telemetry/panel/#"
-topic2_name = "telemetry/chargecontroller/#"
-topic3_name = "telemetry/electricpanel/#"
+all_topics_panel = "telemetry/panel/#"
+topic_chargecontroller = "telemetry/chargecontroller/c1"
 
-topic_internal1 = "internal/totalpanels"
+topic_elpan_consumption_grid = "telemetry/electricpanel/consumption-grid"
+topic_elpan_feeding = "telemetry/electricpanel/feeding"
+topic_elpan_consumption_required = "telemetry/electricpanel/consumption-required"
+
+topic_internal_totalpanels = "internal/totalpanels"
 
 my_qos = 2
 
@@ -38,12 +48,27 @@ class Subscriber:
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_message = self.on_message
         self.mqttc.connect("localhost", port, 60)
+
+        self.recv_totalpanels_event = asyncio.Event()
+        self.recv_chargecontroller_event = asyncio.Event()
+        self.recv_electricpanel_cons_grid_event = asyncio.Event()
+        self.recv_electricpanel_feeding_event = asyncio.Event()
+        self.recv_electricpanel_cons_req_event = asyncio.Event()
+
+        self.loop = asyncio.get_event_loop()
+
         self.mqttc.loop_start()
 
+        self.started = False
+
     def on_connect(self, mqttc, userdata, flags, rc):
-        mqttc.subscribe(topic1_name, qos=my_qos)
-        mqttc.subscribe(topic2_name, qos=my_qos)
-        mqttc.subscribe(topic3_name, qos=my_qos)
+        mqttc.subscribe(all_topics_panel, qos=my_qos)
+        mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
+        mqttc.subscribe(topic_chargecontroller, qos=my_qos)
+
+        mqttc.subscribe(topic_elpan_consumption_grid, qos=my_qos)
+        mqttc.subscribe(topic_elpan_feeding, qos=my_qos)
+        mqttc.subscribe(topic_elpan_consumption_required, qos=my_qos)
 
         # Alla connessione vengono registrati nel log i dati dell'utente, che
         # verranno poi inviati a Kafka
@@ -67,40 +92,82 @@ class Subscriber:
         this_topic = msg.topic
         unpacked = struct.unpack("f", msg.payload)
         measure = round(unpacked[0], 4)
+        # Round permette di evitare errori di calcolo con i float
+        # (spesso si hanno risultati del tipo 1234.5678999999999).
         # Viene ricevuto un dato grezzo, che viene approssimato in quanto
         # si suppone che i dati inviati siano precisi fino alla terza cifra
         # decimale. Può essere un primo esempio di pre-processing.
+
         if re.match("telemetry/panel/.+", this_topic):
             panel_id = this_topic.replace("telemetry/panel/", "")
             self.current_panels[panel_id] = measure
-        elif re.match("telemetry/chargecontroller/.+", this_topic):
+        elif this_topic == topic_internal_totalpanels:
+            self.total_panels = measure
+            self.loop.call_soon_threadsafe(self.recv_totalpanels_event.set)
+        elif this_topic == topic_chargecontroller:
             self.current_batteries["total-charge"] = measure
-        elif re.match("telemetry/electricpanel/.+", this_topic):
+            self.loop.call_soon_threadsafe(self.recv_chargecontroller_event.set)
+        elif this_topic == topic_elpan_consumption_grid:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
+            self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_grid_event.set)
+        elif this_topic == topic_elpan_feeding:
+            key_name = this_topic.replace("telemetry/electricpanel/", "")
+            self.current_elmeter[key_name] = measure
+            self.loop.call_soon_threadsafe(self.recv_electricpanel_feeding_event.set)
+        elif this_topic == topic_elpan_consumption_required:
+            key_name = this_topic.replace("telemetry/electricpanel/", "")
+            self.current_elmeter[key_name] = measure
+            self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_req_event.set)
 
-    def update(self, *args):
+    async def update(self, *args):
+        # Salta il primo update per sincronizzarsi con tutti i dispositivi
+        if not self.started:
+            print("Skipping the first step to sync all devices...")
+            self.started = True
+            return
+
         now: datetime.datetime = args[0]
         json_dict = {}
-        with open("log.ndjson", "a") as logfile:
+        # Devo aspettare:
+        # - di aver ricevuto tutti i pannelli. Visto che l'inverter attende
+        # a sua volta tutti i pannelli e poi pubblica sul topic interno la
+        # produzione totale, allora posso aspettare direttamente di aver
+        # ricevuto la produzione totale dall'inverter.
+        # - di aver ricevuto i dati dal controller di carica.
+        # - di aver ricevuto i dati dal quadro elettrico.
+        await asyncio.gather(
+            self.recv_totalpanels_event.wait(),
+            self.recv_chargecontroller_event.wait(),
+            self.recv_electricpanel_cons_grid_event.wait(),
+            self.recv_electricpanel_feeding_event.wait(),
+            self.recv_electricpanel_cons_req_event.wait(),
+        )
+
+        async with aiofiles.open("log.ndjson", "a") as logfile:
             json_dict["clientid"] = self.client_id
             json_dict["telemetry"] = {}
+
             json_dict["telemetry"]["panels"] = self.current_panels
+            json_dict["telemetry"]["panels"]["total"] = self.total_panels
+
             json_dict["telemetry"]["batteries"] = self.current_batteries
+
             json_dict["telemetry"]["elmeter"] = self.current_elmeter
+
             json_dict["telemetry"]["timestamp"] = now.timestamp()
-            tot_prod = 0
-            for key, value in self.current_panels.items():
-                tot_prod += value
-            json_dict["telemetry"]["panels"]["total"] = round(tot_prod, 4)
-            # Round permette di evitare errori di calcolo con i float
-            # (spesso si hanno risultati del tipo 1234.5678999999999)
-            self.mqttc.publish(topic_internal1, struct.pack("f", tot_prod), qos=my_qos)
+
+            json_write = json.dumps(json_dict)
+            await logfile.write(json_write + "\n")
+
+            print(f"{time.time()}\t{__name__}\tWrote to log.ndjson: {json_write}")
+
             self.current_panels = {}
             self.current_batteries = {}
             self.current_elmeter = {}
-            json.dump(json_dict, logfile)
-            logfile.write("\n")
 
-            json_write = json.dumps(json_dict)
-            print(f"{time.time()}\t{__name__}\t{json_write}")
+            self.recv_totalpanels_event.clear()
+            self.recv_chargecontroller_event.clear()
+            self.recv_electricpanel_cons_grid_event.clear()
+            self.recv_electricpanel_feeding_event.clear()
+            self.recv_electricpanel_cons_req_event.clear()

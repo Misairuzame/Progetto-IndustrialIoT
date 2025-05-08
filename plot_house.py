@@ -48,12 +48,14 @@ if __name__ == "__main__":
                     x.append(
                         datetime.datetime.fromtimestamp(
                             float(json_obj["telemetry"]["timestamp"])
-                        ).strftime("%d/%m/%y %H:%M")
+                        ).strftime("%Y-%m-%d %H:%M")
                     )
                     # u.append(json_obj["telemetry"]["panels"]["p1"])
                     # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
-            except:
-                pass
+            except Exception as e:
+                print(e)
+                print(json_obj)
+                print("")
 
     # print("Wh totali prodotti dal pannello p1: {}".format(p1_power))
 
