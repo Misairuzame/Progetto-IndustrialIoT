@@ -72,25 +72,6 @@ y_realistico = [
 # produzione tipica di un pannello solare
 
 
-def consumption_function(x: int):
-    """
-    La funzione assume i valori di interesse nel dominio [0,12].
-    Visto che le ore del giorno sono 24, se si vuole passare alla
-    funzione un valore compreso fra 0 e 24 (l'ora del giorno),
-    basterà poi dividere quel valore per 2, in modo da ottenere
-    dei risultati significativi (fuori dal dominio la funzione
-    restituisce valori completamente insensati).
-    ^^^ TODO: È ancora così??? Verificare !!!
-
-    Args:
-        x: intero, l'ora del giorno attuale.
-    """
-
-    if 0 <= x <= 24:
-        return y[round(x)]  # Massimo: 1.72
-    return 0
-
-
 def solar_power_function(x):
     if 0 <= x <= 24:
         x = x / 2
@@ -103,7 +84,7 @@ def solar_power_function(x):
     return 0
 
 
-# Molto interessante
+# Molto interessante (per ora inutilizzato)
 def solar_power_with_season(dt: datetime) -> float:
     # giorno dell'anno (1-365)
     day_of_year = dt.timetuple().tm_yday
@@ -138,8 +119,10 @@ def calcola_produzione_pannello(
 
     :param start_time: inizio (datetime)
     :param end_time: fine (datetime)
+    :param max_panel_production: produzione massima del pannello in Wh (NON kWh,
+    per retrocompatibilità)
     :param step_minutes: risoluzione (es. 1 min = integrazione più fine)
-    :return: produzione in Wh
+    :return: produzione in kWh
     """
     if end_time <= start_time:
         return 0.0
@@ -151,7 +134,9 @@ def calcola_produzione_pannello(
     while current_time < end_time:
         # Calcola produzione istantanea
         hour_float = current_time.hour + current_time.minute / 60
-        inst_power_kWh = solar_power_function(hour_float) * (max_panel_production / 4.5)
+        inst_power_kWh = solar_power_function(hour_float) * (
+            max_panel_production / 1000 / 4.5
+        )
 
         # Calcola energia per questo intervallo e somma
         energy_kWh = inst_power_kWh * (step_minutes / 60)
@@ -160,40 +145,6 @@ def calcola_produzione_pannello(
         current_time += step
 
     return total_production
-
-
-# def calcola_consumo_intervallo(start_time: datetime, end_time: datetime) -> float:
-#     """
-#     Calcola il consumo energetico (in kWh) tra due istanti arbitrari.
-#     Assume consumo costante all'interno di ogni ora.
-
-#     :param start_time: datetime di inizio
-#     :param end_time: datetime di fine
-#     :return: consumo totale in kWh
-#     """
-#     if end_time <= start_time:
-#         return 0.0
-
-#     consumo_totale = 0.0
-#     current_time = start_time
-
-#     while current_time < end_time:
-#         next_time = min(
-#             (current_time + timedelta(hours=1)).replace(
-#                 minute=0, second=0, microsecond=0
-#             ),
-#             end_time,
-#         )
-#         durata_minuti = (next_time - current_time).total_seconds() / 60
-#         ora_corrente = current_time.hour
-
-#         consumo_ora = y[ora_corrente % 24]  # modulo 24 per sicurezza
-#         # proporzione di consumo orario
-#         consumo_totale += consumo_ora * (durata_minuti / 60)
-
-#         current_time = next_time
-
-#     return consumo_totale
 
 
 def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
@@ -315,12 +266,12 @@ if __name__ == "__main__":
     inizio = datetime(2025, 5, 4, 10, 15)
     fine = datetime(2025, 5, 4, 14, 45)
     produzione = calcola_produzione_pannello(inizio, fine, max_panel_production)
-    print(f"Produzione stimata 1 pannello 10:15 - 14:45: {produzione=} Wh")
+    print(f"Produzione stimata 1 pannello 10:15 - 14:45: {produzione=} kWh")
 
     inizio = datetime(2025, 5, 4, 0, 0)
     fine = datetime(2025, 5, 5, 0, 0)
     produzione = calcola_produzione_pannello(inizio, fine, max_panel_production)
-    print(f"Produzione stimata 1 pannello 24h: {produzione=} Wh")
+    print(f"Produzione stimata 1 pannello 24h: {produzione=} kWh")
 
     import matplotlib.pyplot as plt
     import numpy as np

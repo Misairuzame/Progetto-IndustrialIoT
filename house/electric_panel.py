@@ -64,11 +64,10 @@ class ElectricPanel:
     async def update(self, *args):
         now: datetime.datetime = args[0]
 
-        consumption_required = (
-            my_functions.calcola_consumo_intervallo(self.start_time, now)
-            * random.uniform(0.75, 1.25)  # Un po' di randomicità nel consumo
-            * 1000  # Wh -> kWh
-        )
+        consumption_required = my_functions.calcola_consumo_intervallo(
+            self.start_time, now
+        ) * random.uniform(0.75, 1.25)
+        # Con un po' di randomicità nel consumo
 
         pkd_consumption_req = struct.pack("f", consumption_required)
         _ = self.mqttc.publish(

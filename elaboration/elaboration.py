@@ -1,8 +1,8 @@
-import datetime
 import json
 import os
 import re
 import time
+from datetime import datetime, timedelta
 
 import requests
 
@@ -28,48 +28,49 @@ def parse_hours_minutes(time_str: str):
         elif "minute" in unit.lower():
             minutes += int(value)
 
-    return datetime.timedelta(hours=hours, minutes=minutes)
+    return timedelta(hours=hours, minutes=minutes)
 
 
-simulation_start = datetime.datetime.strptime(
+simulation_start = datetime.strptime(
     os.getenv("SIMULATION_START", "2025-01-01 00:00"),
     "%Y-%m-%d %H:%M",
 )
 simulation_step = parse_hours_minutes(os.getenv("SIMULATION_STEP", "1 hour"))
 simulation_speed = float(os.getenv("SIMULATION_SPEED", 5.0))
 
-one_simulated_week_in_real_seconds = (
-    (7 * 24 * 60 * 60) / simulation_step.seconds
-) * simulation_speed
+bill_days = int(os.getenv("BILL_DAYS", 7))
+
+
+def n_simulated_days_in_real_seconds(days: int):
+    return ((days * 24 * 60 * 60) / simulation_step.seconds) * simulation_speed
+
 
 current = simulation_start
 
 
-# Al fine della simulazione poniamo una fatturazione settimanale,
-# in modo da non dover aspettare troppo tempo per la raccolta
-# (ma anche per l'elaborazione) dei dati.
+# Il numero di giorni dopo il quale si produce una bolletta è
+# configurabile, in modo da non dover aspettare troppo tempo
+# per la raccolta (ma anche per l'elaborazione) dei dati.
 
 
 def print_and_sleep():
     print("-" * 86)
     print(
-        "Creating report in {} seconds (one simulated week)".format(
-            one_simulated_week_in_real_seconds
+        "Creating report in {} seconds ({} simulated days)".format(
+            n_simulated_days_in_real_seconds(bill_days), bill_days
         )
     )
     print(
         "Current real time: {}, real time for next report: {}".format(
-            datetime.datetime.fromtimestamp(int(time.time())),
-            datetime.datetime.fromtimestamp(
-                int(time.time()) + one_simulated_week_in_real_seconds
+            datetime.fromtimestamp(int(time.time())),
+            datetime.fromtimestamp(
+                int(time.time()) + n_simulated_days_in_real_seconds(bill_days)
             ),
         )
     )
     print("-" * 86)
-    time.sleep(one_simulated_week_in_real_seconds)
+    time.sleep(n_simulated_days_in_real_seconds(bill_days))
 
-
-# print_and_sleep()
 
 while True:
     from_date = current.timestamp()
@@ -77,10 +78,7 @@ while True:
     # Attesa del passaggio di una settimana simulata
     print_and_sleep()
 
-    # Forse ha più senso:
-    # current = from_date + datetime.timedelta(days=7)
-    # ? Ma verificare i tipi!
-    current = current + datetime.timedelta(days=7)
+    current = current + timedelta(days=7)
     print("Current simulated time:", current.strftime("%Y-%m-%d %H:%M:%s"))
 
     clients = []
