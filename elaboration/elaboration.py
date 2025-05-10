@@ -40,17 +40,15 @@ simulation_speed = float(os.getenv("SIMULATION_SPEED", 5.0))
 
 bill_days = int(os.getenv("BILL_DAYS", 7))
 
-
-def n_simulated_days_in_real_seconds(days: int):
-    return ((days * 24 * 60 * 60) / simulation_step.seconds) * simulation_speed
-
-
 current = simulation_start
-
 
 # Il numero di giorni dopo il quale si produce una bolletta è
 # configurabile, in modo da non dover aspettare troppo tempo
 # per la raccolta (ma anche per l'elaborazione) dei dati.
+
+
+def n_simulated_days_in_real_seconds(days: int):
+    return ((days * 24 * 60 * 60) / simulation_step.seconds) * simulation_speed
 
 
 def print_and_sleep():
@@ -146,6 +144,7 @@ while True:
         a_client["clientinfo"] = client
         a_client["bill-timestamp"] = int(current.timestamp())
         a_client["period"] = "1w"
+
         total_fed = 0
         total_grid = 0
         total_house = 0
@@ -158,13 +157,19 @@ while True:
                     total_house += hit_elmeter["consumption-required"]
                 except:
                     print("Errore nel seguente risultato: {}".format(hit["_source"]))
+
         a_client["fed-into-grid"] = round(total_fed, 4)
         a_client["consumed-grid"] = round(total_grid, 4)
         a_client["total-house-consumed"] = round(total_house, 4)
-        gained_feeding = round(total_fed * pay_per_kwh, 2)
+
+        # Diviso 1000: Wh -> kWh
+        gained_feeding = round(total_fed * pay_per_kwh / 1000, 2)
         a_client["gained-feeding"] = gained_feeding
-        price_consumed = round(total_grid * price_per_kwh, 2)
+
+        # Diviso 1000: Wh -> kWh
+        price_consumed = round(total_grid * price_per_kwh / 1000, 2)
         a_client["price-consumed"] = price_consumed
+
         total_to_pay = round(price_consumed - gained_feeding, 2)
         if total_to_pay < 0:
             a_client["total-to-pay"] = 0

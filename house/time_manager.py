@@ -21,10 +21,10 @@ class TimeManager:
             )
         self.step = step
 
-        if speed < 5.0:
-            raise ValueError(
-                f"TimeManager - speed value cannot be lower than 5 seconds! Got: {speed=}"
-            )
+        # if speed < 5.0:
+        #    raise ValueError(
+        #        f"TimeManager - speed value cannot be lower than 5 seconds! Got: {speed=}"
+        #    )
         self.speed = speed
         self.subscribers = []
 
@@ -32,8 +32,6 @@ class TimeManager:
         self.subscribers.append(module)
 
     async def tick(self):
-        # for s in self.subscribers:
-        #    s.update(self.current)
         await asyncio.gather(*(s.update(self.current) for s in self.subscribers))
         self.current += self.step
 

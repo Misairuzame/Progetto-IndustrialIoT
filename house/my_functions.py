@@ -1,4 +1,5 @@
 import math
+import random
 from datetime import datetime, timedelta
 
 """
@@ -12,7 +13,7 @@ energy use, the electricity bill should be $4.32 to $5.48 per day, $132.8 to $16
 $1593.6 to $1992 per year.
 """
 
-y = [
+y_kWh = [
     0.5,  # 0:00
     0.5,
     0.45,
@@ -37,6 +38,33 @@ y = [
     1.72,
     1.17,
     0.75,
+]
+
+y = [
+    500,  # 0:00
+    500,
+    450,
+    400,
+    380,  # 4:00
+    360,
+    380,
+    580,
+    1000,  # 8:00
+    1180,
+    580,
+    380,
+    360,  # 12:00
+    350,
+    340,
+    320,
+    370,  # 16:00
+    400,
+    720,
+    1220,
+    1700,  # 20:00
+    1720,
+    1170,
+    750,
 ]
 
 # Secondo GPT.....
@@ -72,13 +100,13 @@ y_realistico = [
 # produzione tipica di un pannello solare
 
 
-def solar_power_function(x):
-    if 0 <= x <= 24:
-        x = x / 2
+def solar_power_function(hour: float):
+    if 0 <= hour <= 24:
+        hour = hour / 2
         return (
             12
             / math.sqrt(((2 * math.pi) * 1.06**2))
-            * math.exp(((-((x - 6) ** 2))) / ((2 * 1.06**2)))
+            * math.exp(((-((hour - 6) ** 2))) / ((2 * 1.06**2)))
         )
         # Il massimo è circa uguale a 4.5
     return 0
@@ -119,10 +147,9 @@ def calcola_produzione_pannello(
 
     :param start_time: inizio (datetime)
     :param end_time: fine (datetime)
-    :param max_panel_production: produzione massima del pannello in Wh (NON kWh,
-    per retrocompatibilità)
+    :param max_panel_production: produzione massima del pannello in Wh
     :param step_minutes: risoluzione (es. 1 min = integrazione più fine)
-    :return: produzione in kWh
+    :return: produzione in Wh
     """
     if end_time <= start_time:
         return 0.0
@@ -134,13 +161,21 @@ def calcola_produzione_pannello(
     while current_time < end_time:
         # Calcola produzione istantanea
         hour_float = current_time.hour + current_time.minute / 60
-        inst_power_kWh = solar_power_function(hour_float) * (
-            max_panel_production / 1000 / 4.5
-        )
+
+        # Mettiamo un po' di randomicità nelle ore, in modo da shiftare un po'
+        # il consumo di energia della casa (sennò i picchi sono sempre nelle stesse ore)
+        # hour_float = (hour_float + random.gauss(0, 5)) % 24
+        # Per uso con la funzione stagionale usare timedelta(hours=random.gauss(...));
+        # aggiungere anche minuti come una round della (parte frazionaria * 60)
+
+        # * (max_panel_production / 4.5) è perchè la funzione che modella la produzione
+        # del singolo pannello solare va da 0 a 4.5, in questo modo la scaliamo in modo
+        # che vada da 0 a max_panel_production
+        inst_power_Wh = solar_power_function(hour_float) * (max_panel_production / 4.5)
 
         # Calcola energia per questo intervallo e somma
-        energy_kWh = inst_power_kWh * (step_minutes / 60)
-        total_production += energy_kWh
+        energy_Wh = inst_power_Wh * (step_minutes / 60)
+        total_production += energy_Wh
 
         current_time += step
 
@@ -152,7 +187,7 @@ def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
     Calcola il consumo istantaneo interpolando linearmente tra i valori nella lista `y`.
 
     :param ora_frazionaria: orario come numero decimale, es. 13.5 per 13:30
-    :return: consumo istantaneo in kWh
+    :return: consumo istantaneo in Wh
     """
     h0 = int(ora_frazionaria) % 24
     h1 = (h0 + 1) % 24
@@ -172,7 +207,7 @@ def calcola_consumo_intervallo(
     :param start_time: datetime inizio
     :param end_time: datetime fine
     :param step_minutes: passo temporale per l'integrazione (default: 1 minuto)
-    :return: consumo in kWh
+    :return: consumo in Wh
     """
     if end_time <= start_time:
         return 0.0
@@ -215,23 +250,23 @@ if __name__ == "__main__":
     consumo_cross = calcola_consumo_intervallo(start_time_cross, end_time_cross)
 
     # Mostra i risultati
-    print(f"Consumo dalle 17:00 alle 18:00: {consumo_17_18} kWh")
-    print(f"Consumo dalle 19:30 alle 20:00: {consumo_1930_2000} kWh")
-    print(f"Consumo dalle 23:30 alle 00:30: {consumo_cross} kWh")
+    print(f"Consumo dalle 17:00 alle 18:00: {consumo_17_18} Wh")
+    print(f"Consumo dalle 19:30 alle 20:00: {consumo_1930_2000} Wh")
+    print(f"Consumo dalle 23:30 alle 00:30: {consumo_cross} Wh")
 
     start = datetime(2024, 1, 1, 19, 30)  # 19:30
     end = datetime(2024, 1, 1, 21, 15)  # 21:15
     print(
-        f"Consumo stimato 19:30 - 21:15: {calcola_consumo_intervallo(start, end)=} kWh"
+        f"Consumo stimato 19:30 - 21:15: {calcola_consumo_intervallo(start, end)=} Wh"
     )
 
     start = datetime(2024, 1, 1, 0, 0)
     end = datetime(2024, 1, 2, 0, 0)
-    print(f"Consumo stimato 24h: {calcola_consumo_intervallo(start, end)=} kWh")
+    print(f"Consumo stimato 24h: {calcola_consumo_intervallo(start, end)=} Wh")
 
     start = datetime(2024, 1, 1, 14, 13)
     end = datetime(2024, 1, 2, 14, 13)
-    print(f"Consumo stimato 24h (2): {calcola_consumo_intervallo(start, end)=} kWh")
+    print(f"Consumo stimato 24h (2): {calcola_consumo_intervallo(start, end)=} Wh")
 
     start = datetime(2024, 1, 1, 0, 0)
     end = datetime(2024, 1, 2, 0, 0)
@@ -247,7 +282,7 @@ if __name__ == "__main__":
 
     start = datetime(2024, 1, 1, 0, 0)
     end = datetime(2024, 1, 8, 0, 0)
-    print(f"Consumo stimato 1 settimana: {calcola_consumo_intervallo(start, end)=} kWh")
+    print(f"Consumo stimato 1 settimana: {calcola_consumo_intervallo(start, end)=} Wh")
 
     start = datetime(2024, 1, 1, 0, 0)
     end = datetime(2024, 1, 8, 0, 0)
@@ -266,20 +301,20 @@ if __name__ == "__main__":
     inizio = datetime(2025, 5, 4, 10, 15)
     fine = datetime(2025, 5, 4, 14, 45)
     produzione = calcola_produzione_pannello(inizio, fine, max_panel_production)
-    print(f"Produzione stimata 1 pannello 10:15 - 14:45: {produzione=} kWh")
+    print(f"Produzione stimata 1 pannello 10:15 - 14:45: {produzione=} Wh")
 
     inizio = datetime(2025, 5, 4, 0, 0)
     fine = datetime(2025, 5, 5, 0, 0)
     produzione = calcola_produzione_pannello(inizio, fine, max_panel_production)
-    print(f"Produzione stimata 1 pannello 24h: {produzione=} kWh")
+    print(f"Produzione stimata 1 pannello 24h: {produzione=} Wh")
 
     import matplotlib.pyplot as plt
     import numpy as np
+    from matplotlib.animation import FuncAnimation
 
     # Crea una lista di ore (es. 0.0, 0.1, ..., 24.0)
     ore = np.linspace(0, 24, 500)
     produzione = [solar_power_function(h) for h in ore]
-
     # Disegna il grafico
     plt.figure(figsize=(10, 5))
     plt.plot(ore, produzione, label="solar_power_function(x)", color="orange")
@@ -289,4 +324,84 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
+    plt.show()
+
+    # Creazione dell'array di ore durante il giorno
+    ore = np.arange(0, 24, 0.1)
+
+    # Creazione della figura e degli assi
+    fig, ax = plt.subplots(figsize=(10, 5))
+    (line,) = ax.plot([], [], label="Produzione solare", color="orange")
+    date_text = ax.text(
+        0.95,
+        0.95,
+        "",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=12,
+        color="black",
+    )
+    ax.set_title("Produzione solare durante l'anno")
+    ax.set_xlabel("Ora del giorno")
+    ax.set_ylabel("Produzione normalizzata (≈kW)")
+    ax.grid(True)
+    ax.legend()
+    ax.set_xlim(0, 24)
+    ax.set_ylim(0, 5)
+
+    # Funzione di inizializzazione (per l'animazione)
+    def init():
+        line.set_data([], [])
+        date_text.set_text("")
+        return (line,)
+
+    # Funzione di aggiornamento per l'animazione
+    def update(frame):
+        # 'frame' rappresenta il giorno dell'anno (partiamo dal primo giorno)
+        # Giorni nell'anno (modulo 365 per farlo ripetere ogni anno)
+        giorno = frame % 365
+
+        # Creiamo un datetime per il primo giorno dell'anno
+        start_date = datetime(2025, 1, 1)
+
+        # Calcoliamo la data del giorno corrente
+        current_day = start_date + timedelta(days=giorno.item())
+
+        # Calcoliamo la produzione per tutte le ore del giorno dato il giorno dell'anno
+        produzione = [
+            solar_power_with_season(
+                current_day.replace(hour=int(h), minute=int((h % 1) * 60))
+            )
+            for h in ore
+        ]
+
+        # Aggiorna i dati della linea
+        line.set_data(ore, produzione)
+
+        # Aggiungi la data alla legenda
+        # Formatta la data come "GG Mese AAAA"
+        date_str = current_day.strftime("%d %b %Y")
+        date_text.set_text(f"Data: {date_str}")
+
+        return line, date_text
+
+    # Crea l'animazione
+    ani = FuncAnimation(
+        fig, update, frames=np.arange(0, 365), init_func=init, blit=True, interval=100
+    )
+
+    # Mostra l'animazione
+    plt.tight_layout()
+    plt.show()
+
+    # Genera 100 valori casuali con distribuzione gaussiana
+    values = [random.gauss(0, 0.5) for _ in range(100)]
+
+    # Crea il grafico
+    plt.plot(values)
+    plt.title("Distribuzione Gaussiana - 100 Valori")
+    plt.xlabel("Indice")
+    plt.ylabel("Valore")
+    plt.grid(True)
     plt.show()

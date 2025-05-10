@@ -45,8 +45,7 @@ def get_meteo_internal():
     solari limitiamo questo valore ad un massimo di 30
     (Se la nuvolosità è 100, il pannello produce 0W).
     """
-
-    return random.randint(0, 30)
+    return random.triangular(0, 30, 0)
 
 
 if __name__ == "__main__":

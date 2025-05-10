@@ -87,7 +87,6 @@ services:
       args:
         - STACK_VERSION=${STACK_VERSION}
     environment:
-      - TIME_SCALING=${TIME_SCALING}
       - SIMULATION_START=${SIMULATION_START}
       - SIMULATION_STEP=${SIMULATION_STEP}
       - SIMULATION_SPEED=${SIMULATION_SPEED}
@@ -129,7 +128,6 @@ services:
   elaboration:
     build: elaboration
     environment:
-      - TIME_SCALING=${TIME_SCALING}
       - SIMULATION_START=${SIMULATION_START}
       - SIMULATION_STEP=${SIMULATION_STEP}
       - SIMULATION_SPEED=${SIMULATION_SPEED}
