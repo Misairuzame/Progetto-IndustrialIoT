@@ -91,6 +91,8 @@ services:
       - SIMULATION_STEP=${SIMULATION_STEP}
       - SIMULATION_SPEED=${SIMULATION_SPEED}
       - SIMULATION_HOW_MANY_STEPS=${SIMULATION_HOW_MANY_STEPS}
+    volumes:
+      - "./errors.log:/app/errors.log"
     deploy:
       replicas: ${HOUSES}
     depends_on:

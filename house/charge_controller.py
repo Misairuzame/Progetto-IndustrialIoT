@@ -48,6 +48,8 @@ class ChargeController:
 
         self.mqttc.loop_start()
 
+        self.started = False
+
     def on_connect(self, mqttc, obj, flags, rc, properties):
         mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
         mqttc.subscribe(topic_internal_getfrombatteries, qos=my_qos)
@@ -126,6 +128,14 @@ class ChargeController:
             return 0
 
     async def update(self, *args):
+        # Salta il primo update per sincronizzarsi con tutti i dispositivi
+        if not self.started:
+            print(
+                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
+            )
+            self.started = True
+            return
+
         await asyncio.gather(
             self.recv_getfrombatteries_event.wait(),
             self.recv_totalpanels_event.wait(),
@@ -134,5 +144,6 @@ class ChargeController:
         pkd_charge = struct.pack("f", self.charge)
         _ = self.mqttc.publish(topic_charge, pkd_charge, qos=my_qos)
         print(f"{time.time()}\t{__name__}\tPub on '{topic_charge}': {self.charge}")
+
         self.recv_getfrombatteries_event.clear()
         self.recv_totalpanels_event.clear()

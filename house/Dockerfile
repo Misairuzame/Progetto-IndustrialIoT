@@ -50,6 +50,4 @@ EOF
 
 COPY . .
 
-#CMD ["bash", "house.sh"]
-
 CMD ["bash", "house-new.sh"]

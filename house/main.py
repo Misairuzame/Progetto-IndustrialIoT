@@ -60,7 +60,7 @@ async def main():
     el_panel = electric_panel.ElectricPanel(simulation_start)
 
     # Subscriber (gateway)
-    subscr = subscriber.Subscriber()
+    subscr = subscriber.Subscriber(simulation_start)
 
     # Pannelli solari
     num_of_panels = 0

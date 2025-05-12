@@ -35,7 +35,9 @@ my_qos = 2
 
 
 class Subscriber:
-    def __init__(self, port=1883):
+    def __init__(self, simulation_start: datetime.datetime, port=1883):
+        self.simulation_start = simulation_start
+
         self.current_panels = {}
         self.current_batteries = {}
         self.current_elmeter = {}
@@ -81,6 +83,7 @@ class Subscriber:
                 "clientid": self.client_id,
                 "clientname": client_name,
                 "position": {"lat": latitude, "lon": longitude},
+                "timestamp": self.simulation_start.timestamp(),
             }
         }
 
@@ -98,23 +101,29 @@ class Subscriber:
         # si suppone che i dati inviati siano precisi fino alla terza cifra
         # decimale. Può essere un primo esempio di pre-processing.
 
+        # telemetry/panel/p{n}
         if re.match("telemetry/panel/.+", this_topic):
             panel_id = this_topic.replace("telemetry/panel/", "")
             self.current_panels[panel_id] = measure
+        # internal/totalpanels
         elif this_topic == topic_internal_totalpanels:
             self.total_panels = measure
             self.loop.call_soon_threadsafe(self.recv_totalpanels_event.set)
+        # telemetry/chargecontroller/c1
         elif this_topic == topic_chargecontroller:
             self.current_batteries["total-charge"] = measure
             self.loop.call_soon_threadsafe(self.recv_chargecontroller_event.set)
+        # telemetry/electricpanel/consumption-grid
         elif this_topic == topic_elpan_consumption_grid:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_grid_event.set)
+        # telemetry/electricpanel/feeding
         elif this_topic == topic_elpan_feeding:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_feeding_event.set)
+        # telemetry/electricpanel/consumption-required
         elif this_topic == topic_elpan_consumption_required:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
@@ -123,7 +132,9 @@ class Subscriber:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print("Skipping the first step to sync all devices...")
+            print(
+                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
+            )
             self.started = True
             return
 
@@ -144,7 +155,9 @@ class Subscriber:
             self.recv_electricpanel_cons_req_event.wait(),
         )
 
-        async with aiofiles.open("log.ndjson", "a") as logfile:
+        async with aiofiles.open("log.ndjson", "a") as logfile, aiofiles.open(
+            "/app/errors.log", "at"
+        ) as errlog:
             json_dict["clientid"] = self.client_id
             json_dict["telemetry"] = {}
 
@@ -156,6 +169,45 @@ class Subscriber:
             json_dict["telemetry"]["elmeter"] = self.current_elmeter
 
             json_dict["telemetry"]["timestamp"] = now.timestamp()
+
+            tries = 3
+            throw = True
+            # try "tries" times, or stop if everything expected is in json_dict
+            while tries > 0 and throw:
+                try:
+                    _ = json_dict["clientid"]
+                    _ = json_dict["telemetry"]
+                    _ = json_dict["telemetry"]["panels"]
+                    _ = json_dict["telemetry"]["panels"]["total"]
+                    _ = json_dict["telemetry"]["batteries"]
+                    _ = json_dict["telemetry"]["batteries"]["total-charge"]
+                    _ = json_dict["telemetry"]["elmeter"]
+                    _ = json_dict["telemetry"]["elmeter"]["consumption-grid"]
+                    _ = json_dict["telemetry"]["elmeter"]["feeding"]
+                    _ = json_dict["telemetry"]["elmeter"]["consumption-required"]
+                    _ = json_dict["telemetry"]["timestamp"]
+                    throw = False
+                except Exception as e:
+                    print(e)
+                    throw = True
+                    await errlog.write(
+                        f"Not all fields were present in log: {json_dict=}, retrying... ({tries=})"
+                    )
+                    # Time.sleep will block the entire process!
+                    await asyncio.sleep(0.5)
+                tries -= 1
+
+            if throw:
+                await errlog.write(
+                    f"Not all fields were present in log: {json_dict=}, no retries left!"
+                )
+                # make container unhealthy
+                import shutil
+
+                shutil.move("/app/log.ndjson", "/app/log-copy.ndjson")
+                raise AssertionError(
+                    f"Not all fields are present in this log! {json_dict=}"
+                )
 
             json_write = json.dumps(json_dict)
             await logfile.write(json_write + "\n")

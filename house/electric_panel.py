@@ -49,6 +49,8 @@ class ElectricPanel:
 
         self.mqttc.loop_start()
 
+        self.started = False
+
     def on_connect(self, mqttc, obj, flags, rc, properties):
         mqttc.subscribe(topic_internal_tofeed, qos=my_qos)
         mqttc.subscribe(topic_internal_getfromgrid, qos=my_qos)
@@ -62,6 +64,14 @@ class ElectricPanel:
             self.loop.call_soon_threadsafe(self.received_feed_into_grid_event.set)
 
     async def update(self, *args):
+        # Salta il primo update per sincronizzarsi con tutti i dispositivi
+        if not self.started:
+            print(
+                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
+            )
+            self.started = True
+            return
+
         now: datetime.datetime = args[0]
 
         consumption_required = my_functions.calcola_consumo_intervallo(

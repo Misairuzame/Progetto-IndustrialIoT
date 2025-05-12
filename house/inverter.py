@@ -41,6 +41,8 @@ class Inverter:
 
         self.mqttc.loop_start()
 
+        self.started = False
+
     def on_connect(self, mqttc, obj, flags, rc, properties):
         mqttc.subscribe(all_topics_panel, qos=my_qos)
 
@@ -52,6 +54,14 @@ class Inverter:
         self.loop.call_soon_threadsafe(self.recv_list[recv_panel - 1].set)
 
     async def update(self, *args):
+        # Salta il primo update per sincronizzarsi con tutti i dispositivi
+        if not self.started:
+            print(
+                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
+            )
+            self.started = True
+            return
+
         await asyncio.gather(*(e.wait() for e in self.recv_list))
 
         total_panels = struct.pack("f", self.total_panels)

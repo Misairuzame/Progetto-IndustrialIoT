@@ -37,7 +37,17 @@ class SolarPanel:
         self.topic = "telemetry/panel/p" + str(self.panel_id)
         self.mqttc.loop_start()
 
+        self.started = False
+
     async def update(self, *args):
+        # Salta il primo update per sincronizzarsi con tutti i dispositivi
+        if not self.started:
+            print(
+                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
+            )
+            self.started = True
+            return
+
         # Viene inviato un dato float "grezzo", che si ritiene sia
         # preciso fino alla terza cifra decimale; dalla quarta in poi
         # verrà arrotondato dal subscriber.
