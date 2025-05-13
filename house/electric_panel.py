@@ -7,11 +7,11 @@ import uuid
 
 import my_functions
 import paho.mqtt.client as mqtt
-from print_color import print as prnt
+from print_color import print as color_print
 
 
 def print(*args):
-    prnt(*args, color="cyan")
+    color_print(f"{time.time()}\t{__name__}\t", *args, color="cyan")
 
 
 topic_consumption_grid = "telemetry/electricpanel/consumption-grid"
@@ -66,9 +66,7 @@ class ElectricPanel:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print(
-                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
-            )
+            print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
@@ -83,9 +81,7 @@ class ElectricPanel:
         _ = self.mqttc.publish(
             topic_consumption_required, pkd_consumption_req, qos=my_qos
         )
-        print(
-            f"{time.time()}\t{__name__}\tPub on '{topic_consumption_required}': {consumption_required}"
-        )
+        print(f"Pub on '{topic_consumption_required}': {consumption_required}")
 
         # Simulazione: il quadro elettrico "chiede" energia alle batterie, se è possibile le batterie
         # gliela forniscono tutta, sennò (per semplicità) non gliene forniscono alcuna e tutta la
@@ -95,25 +91,19 @@ class ElectricPanel:
             struct.pack("f", consumption_required),
             qos=my_qos,
         )
-        print(
-            f"{time.time()}\t{__name__}\tPub on '{topic_internal_getfombatteries}': {consumption_required}"
-        )
+        print(f"Pub on '{topic_internal_getfombatteries}': {consumption_required}")
 
         # Devo aver ricevuto get_from_grid per poter pubblicare
         await asyncio.gather(self.received_get_from_grid_event.wait())
         pkd_consumption = struct.pack("f", self.get_from_grid)
         _ = self.mqttc.publish(topic_consumption_grid, pkd_consumption, qos=my_qos)
-        print(
-            f"{time.time()}\t{__name__}\tPub on '{topic_consumption_grid}': {self.get_from_grid}"
-        )
+        print(f"Pub on '{topic_consumption_grid}': {self.get_from_grid}")
 
         # Devo aver ricevuto feed_into_grid per poter pubblicare
         await asyncio.gather(self.received_feed_into_grid_event.wait())
         pkd_feed = struct.pack("f", self.feed_into_grid)
         _ = self.mqttc.publish(topic_feeding, pkd_feed, qos=my_qos)
-        print(
-            f"{time.time()}\t{__name__}\tPub on '{topic_feeding}': {self.feed_into_grid}"
-        )
+        print(f"Pub on '{topic_feeding}': {self.feed_into_grid}")
 
         self.received_get_from_grid_event.clear()
         self.received_feed_into_grid_event.clear()

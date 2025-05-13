@@ -1,22 +1,25 @@
 # ============================== Filebeat inputs ===============================
 
 filebeat.inputs:
-
-- type: filestream
-  enabled: true
-  id: my-log-input
-  paths:
-    - /app/log.ndjson
-  # Le due righe sottostanti (json.*) permettono a Filebeat di validare il
-  # json. In questo modo *non* viene inviata una stringa piena di escape,
-  # del tipo "message": "{ \"panels\": { \"p1\": 173.3263 ... .
-  parsers:
-    - ndjson:
-      target: ""
-      add_error_key: true
-  #json.keys_under_root: true
-  #json.add_error_key: true
-  #scan_frequency: 5s
+  - type: filestream
+    enabled: true
+    id: my-log-input
+    paths:
+      - /app/log.ndjson
+    
+    parsers:
+      - ndjson:
+        target: ""
+        add_error_key: true
+    
+    #scan_frequency: 5s
+    
+    # Le due righe sottostanti (json.*) permettono a Filebeat di validare il
+    # json. In questo modo *non* viene inviata una stringa piena di escape,
+    # del tipo "message": "{ \"panels\": { \"p1\": 173.3263 ... .
+    
+    #json.keys_under_root: true
+    #json.add_error_key: true
 
 # ============================== Filebeat modules ==============================
 
@@ -61,10 +64,10 @@ output.kafka:
   topic: "unknown"
   topics:
     - topic: "telemetry"
-      when.has_fields: ['telemetry']
+      when.has_fields: ["telemetry"]
     - topic: "clientinfo"
-      when.has_fields: ['clientinfo']
-      
+      when.has_fields: ["clientinfo"]
+
   partition.round_robin:
     reachable_only: false
 
@@ -76,11 +79,11 @@ output.kafka:
 # Non invia il dato di telemetria se non è completo (se mancano dei campi)
 processors:
   - drop_event.when.and:
-      - has_fields: ['telemetry']
+      - has_fields: ["telemetry"]
       - or:
-        - not.has_fields: ['telemetry.panels.p1']
-        - not.has_fields: ['telemetry.panels.total']
-        - not.has_fields: ['telemetry.batteries.total-charge']
-        - not.has_fields: ['telemetry.elmeter.consumption-grid']
-        - not.has_fields: ['telemetry.elmeter.feeding']
-        - not.has_fields: ['telemetry.elmeter.consumption-required']
+          - not.has_fields: ["telemetry.panels.p1"]
+          - not.has_fields: ["telemetry.panels.total"]
+          - not.has_fields: ["telemetry.batteries.total-charge"]
+          - not.has_fields: ["telemetry.elmeter.consumption-grid"]
+          - not.has_fields: ["telemetry.elmeter.feeding"]
+          - not.has_fields: ["telemetry.elmeter.consumption-required"]

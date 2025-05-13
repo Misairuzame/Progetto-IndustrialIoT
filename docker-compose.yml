@@ -31,8 +31,7 @@ services:
     container_name: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      #- ELASTICSEARCH_USERNAME="elastic"
-      #- ELASTICSEARCH_PASSWORD=elastic_password123 # Same as Elasticsearch
+      # Username and password are no longer supported, must use service account tokens
       - ELASTICSEARCH_SERVICEACCOUNTTOKEN=AAEAAWVsYXN0aWMva2liYW5hL2VsYXN0aWMta2liYW5hLXRva2VuOjMwclV3THZjUWw2aW54WDFDX3RmX3c
     ports:
       - "5601:5601"
@@ -117,12 +116,16 @@ services:
 
   startup-elastic:
     build: elastic
+    environment:
+      - ELASTIC_ADDRESS="elasticsearch:9200"
     depends_on:
       elasticsearch:
         condition: service_healthy
 
   startup-kibana:
     build: kibana
+    environment:
+      - KIBANA_ADDRESS="kibana:5601"
     depends_on:
       kibana:
         condition: service_healthy
@@ -133,6 +136,7 @@ services:
       - SIMULATION_START=${SIMULATION_START}
       - SIMULATION_STEP=${SIMULATION_STEP}
       - SIMULATION_SPEED=${SIMULATION_SPEED}
+      - ELASTIC_ADDRESS="elasticsearch:9200"
     depends_on:
       house:
         condition: service_healthy

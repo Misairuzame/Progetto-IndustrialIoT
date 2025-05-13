@@ -10,11 +10,11 @@ import aiofiles
 import paho.mqtt.client as mqtt
 import random_coordinates
 from faker import Faker
-from print_color import print as prnt
+from print_color import print as color_print
 
 
 def print(*args):
-    prnt(*args, color="purple")
+    color_print(f"{time.time()}\t{__name__}\t", *args, color="purple")
 
 
 def get_full_name():
@@ -132,9 +132,7 @@ class Subscriber:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print(
-                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
-            )
+            print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
@@ -187,11 +185,19 @@ class Subscriber:
                     _ = json_dict["telemetry"]["elmeter"]["consumption-required"]
                     _ = json_dict["telemetry"]["timestamp"]
                     throw = False
-                except Exception as e:
-                    print(e)
+                except KeyError as e:
+                    print("json_dict key not found:", e)
                     throw = True
                     await errlog.write(
-                        f"Not all fields were present in log: {json_dict=}, retrying... ({tries=})"
+                        f"Not all fields were present in log ({e} is missing): {json_dict=}, retrying... ({tries=})"
+                    )
+                    # Time.sleep will block the entire process!
+                    await asyncio.sleep(0.5)
+                except Exception as e:
+                    print("json_dict exception:", e)
+                    throw = True
+                    await errlog.write(
+                        f"Other exception in json_dict ({e}): {json_dict=}, retrying... ({tries=})"
                     )
                     # Time.sleep will block the entire process!
                     await asyncio.sleep(0.5)
@@ -212,7 +218,7 @@ class Subscriber:
             json_write = json.dumps(json_dict)
             await logfile.write(json_write + "\n")
 
-            print(f"{time.time()}\t{__name__}\tWrote to log.ndjson: {json_write}")
+            print(f"Wrote to log.ndjson: {json_write}")
 
             self.current_panels = {}
             self.current_batteries = {}

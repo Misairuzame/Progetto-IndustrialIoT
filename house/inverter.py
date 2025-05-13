@@ -56,9 +56,7 @@ class Inverter:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print(
-                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
-            )
+            print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
@@ -66,9 +64,7 @@ class Inverter:
 
         total_panels = struct.pack("f", self.total_panels)
         _ = self.mqttc.publish(topic_internal_totalpanels, total_panels, qos=my_qos)
-        print(
-            f"{time.time()}\t{__name__}\tPub on '{topic_internal_totalpanels}': {total_panels}"
-        )
+        print(f"Pub on '{topic_internal_totalpanels}': {total_panels}")
 
         for e in self.recv_list:
             e.clear()

@@ -21,10 +21,10 @@ class TimeManager:
             )
         self.step = step
 
-        # if speed < 5.0:
-        #    raise ValueError(
-        #        f"TimeManager - speed value cannot be lower than 5 seconds! Got: {speed=}"
-        #    )
+        if speed < 5.0:
+            raise ValueError(
+                f"TimeManager - speed value cannot be lower than 5 seconds! Got: {speed=}"
+            )
         self.speed = speed
         self.subscribers = []
 

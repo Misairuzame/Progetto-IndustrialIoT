@@ -5,11 +5,11 @@ import time
 import uuid
 
 import paho.mqtt.client as mqtt
-from print_color import print as prnt
+from print_color import print as color_print
 
 
 def print(*args):
-    prnt(*args, color="red")
+    color_print(f"{time.time()}\t{__name__}\t", *args, color="red")
 
 
 topic_charge = "telemetry/chargecontroller/c1"
@@ -55,6 +55,7 @@ class ChargeController:
         mqttc.subscribe(topic_internal_getfrombatteries, qos=my_qos)
 
     def on_message(self, mqttc, obj, msg):
+        # internal/totalpanels
         if msg.topic == topic_internal_totalpanels:
             produced_now = struct.unpack("f", msg.payload)[0]
             feed_into_grid = self.charge_batteries(produced_now)
@@ -63,10 +64,9 @@ class ChargeController:
                 struct.pack("f", float(feed_into_grid)),
                 qos=my_qos,
             )
-            print(
-                f"{time.time()}\t{__name__}\tPub on '{topic_internal_tofeed}': {feed_into_grid}"
-            )
+            print(f"Pub on '{topic_internal_tofeed}': {feed_into_grid}")
             self.loop.call_soon_threadsafe(self.recv_totalpanels_event.set)
+        # internal/getfrombatteries
         elif msg.topic == topic_internal_getfrombatteries:
             to_give = struct.unpack("f", msg.payload)[0]
             get_from_grid = self.give_charge(to_give)
@@ -75,9 +75,7 @@ class ChargeController:
                 struct.pack("f", float(get_from_grid)),
                 qos=my_qos,
             )
-            print(
-                f"{time.time()}\t{__name__}\tPub on '{topic_internal_getfromgrid}': {get_from_grid}"
-            )
+            print(f"Pub on '{topic_internal_getfromgrid}': {get_from_grid}")
             self.loop.call_soon_threadsafe(self.recv_getfrombatteries_event.set)
 
     def give_charge(self, to_give: int) -> int:
@@ -130,9 +128,7 @@ class ChargeController:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print(
-                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
-            )
+            print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
@@ -143,7 +139,7 @@ class ChargeController:
 
         pkd_charge = struct.pack("f", self.charge)
         _ = self.mqttc.publish(topic_charge, pkd_charge, qos=my_qos)
-        print(f"{time.time()}\t{__name__}\tPub on '{topic_charge}': {self.charge}")
+        print(f"Pub on '{topic_charge}': {self.charge}")
 
         self.recv_getfrombatteries_event.clear()
         self.recv_totalpanels_event.clear()

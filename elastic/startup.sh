@@ -1,10 +1,11 @@
 #!/bin/sh
 
-ELASTIC_ADDRESS="elasticsearch:9200"
-
+if [ -z "$ELASTIC_ADDRESS" ]; then
+    ELASTIC_ADDRESS="elasticsearch:9200"
+fi
 # Create Elastic indexes and set mappings.
 
-# Before that, delete indexes!
+# Before that, delete indexes if they exist!
 curl -s -X DELETE "${ELASTIC_ADDRESS}/telemetry"
 echo ""
 
@@ -26,7 +27,7 @@ echo ""
 
 curl -s -X PUT "${ELASTIC_ADDRESS}/telemetry/_mapping" -H 'Content-Type: application/json' -d'
 {
-    "properties" : {
+    "properties": {
         "@timestamp": { "type": "date" },
         "clientid": { "type": "keyword" },
         "telemetry.panels.p1": { "type": "float" },
@@ -54,31 +55,32 @@ curl -s -X PUT "${ELASTIC_ADDRESS}/telemetry/_mapping" -H 'Content-Type: applica
         "telemetry.elmeter.consumption-grid": { "type": "float" },
         "telemetry.elmeter.feeding": { "type": "float" },
         "telemetry.elmeter.consumption-required": { "type": "float" }
-  }
+    }
 }
 '
 echo ""
 
 curl -s -X PUT "${ELASTIC_ADDRESS}/clientinfo/_mapping" -H 'Content-Type: application/json' -d'
 {
-    "properties" : {
+    "properties": {
         "clientinfo.clientid": { "type": "keyword" },
         "clientinfo.clientname": { "type": "text" },
         "clientinfo.position": { "type": "geo_point" }
-  }
+    }
 }
 '
 echo ""
 
 curl -s -X PUT "${ELASTIC_ADDRESS}/elaboration/_mapping" -H 'Content-Type: application/json' -d'
 {
-    "properties" : {
+    "properties": {
         "clientinfo.clientid": { "type": "keyword" },
         "clientinfo.clientname": { "type": "text" },
         "clientinfo.position": { "type": "geo_point" },
-        "bill-timestamp":
-          { "type": "date",
-            "format": "epoch_second" },
+        "bill-timestamp": {
+            "type": "date",
+            "format": "epoch_second"
+        },
         "period": { "type": "text" },
         "fed-into-grid": { "type": "float" },
         "consumed-grid": { "type": "float" },
@@ -87,7 +89,7 @@ curl -s -X PUT "${ELASTIC_ADDRESS}/elaboration/_mapping" -H 'Content-Type: appli
         "price-consumed": { "type": "float" },
         "total-to-pay": { "type": "float" },
         "to-be-credited": { "type": "float" }
-  }
+    }
 }
 '
 echo ""

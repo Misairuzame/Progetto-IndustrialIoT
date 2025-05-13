@@ -7,11 +7,11 @@ import uuid
 import meteo_info
 import my_functions
 import paho.mqtt.client as mqtt
-from print_color import print as prnt
+from print_color import print as color_print
 
 
 def print(*args):
-    prnt(*args, color="green")
+    color_print(f"{time.time()}\t{__name__}\t", *args, color="green")
 
 
 my_qos = 2
@@ -42,9 +42,7 @@ class SolarPanel:
     async def update(self, *args):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
-            print(
-                f"{time.time()}\t{__name__}\tSkipping the first step to sync all devices..."
-            )
+            print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
@@ -73,6 +71,6 @@ class SolarPanel:
 
         pkd_power = struct.pack("f", power)
         _ = self.mqttc.publish(self.topic, pkd_power, qos=my_qos)
-        print(f"{time.time()}\t{__name__}\tPub on '{self.topic}': {power}")
+        print(f"Pub on '{self.topic}': {power}")
 
         self.start_time = now

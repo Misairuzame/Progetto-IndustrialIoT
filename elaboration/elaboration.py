@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-ELASTIC_ADDRESS = "elasticsearch:9200"
+ELASTIC_ADDRESS = os.getenv("ELASTIC_ADDRESS", "elasticsearch:9200")
 
 price_per_kwh = 0.3  # €/kWh
 pay_per_kwh = 0.15  # €/kWh
