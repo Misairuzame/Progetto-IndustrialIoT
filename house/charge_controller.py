@@ -125,7 +125,7 @@ class ChargeController:
             self.charge += to_charge
             return 0
 
-    async def update(self, *args):
+    async def update(self, **kwargs):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
             print("Skipping the first step to sync all devices...")

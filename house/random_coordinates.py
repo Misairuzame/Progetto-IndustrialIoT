@@ -18,8 +18,8 @@ def random_point_in_country(country_name):
     country = [s for s in shapes.records() if country_name in s][0]
     country_id = int(re.findall(r"\d+", str(country))[0])
 
-    shapeRecs = shapes.shapeRecords()
-    feature = shapeRecs[country_id].shape.__geo_interface__
+    shape_recs = shapes.shapeRecords()
+    feature = shape_recs[country_id].shape.__geo_interface__
 
     shp_geom = shape(feature)
 

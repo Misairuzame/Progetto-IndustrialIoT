@@ -63,14 +63,14 @@ class ElectricPanel:
             self.feed_into_grid = struct.unpack("f", msg.payload)[0]
             self.loop.call_soon_threadsafe(self.received_feed_into_grid_event.set)
 
-    async def update(self, *args):
+    async def update(self, **kwargs):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
             print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
-        now: datetime.datetime = args[0]
+        now: datetime.datetime = kwargs.get("current_time")
 
         consumption_required = my_functions.calcola_consumo_intervallo(
             self.start_time, now

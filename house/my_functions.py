@@ -105,8 +105,8 @@ def solar_power_function(hour: float):
         hour = hour / 2
         return (
             12
-            / math.sqrt(((2 * math.pi) * 1.06**2))
-            * math.exp(((-((hour - 6) ** 2))) / ((2 * 1.06**2)))
+            / math.sqrt((2 * math.pi) * 1.06**2)
+            * math.exp((-((hour - 6) ** 2)) / ((2 * 1.06**2)))
         )
         # Il massimo è circa uguale a 4.5
     return 0
@@ -171,11 +171,11 @@ def calcola_produzione_pannello(
         # * (max_panel_production / 4.5) è perchè la funzione che modella la produzione
         # del singolo pannello solare va da 0 a 4.5, in questo modo la scaliamo in modo
         # che vada da 0 a max_panel_production
-        inst_power_Wh = solar_power_function(hour_float) * (max_panel_production / 4.5)
+        inst_power_wh = solar_power_function(hour_float) * (max_panel_production / 4.5)
 
         # Calcola energia per questo intervallo e somma
-        energy_Wh = inst_power_Wh * (step_minutes / 60)
-        total_production += energy_Wh
+        energy_wh = inst_power_wh * (step_minutes / 60)
+        total_production += energy_wh
 
         current_time += step
 

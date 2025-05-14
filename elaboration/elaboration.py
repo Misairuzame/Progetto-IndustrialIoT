@@ -83,13 +83,13 @@ while True:
 
     # Ottenere tutti i ClientID
     url = f"http://{ELASTIC_ADDRESS}/clientinfo/_search"
-    headers = {"Content-type": "application/json"}
+    header_cont_type_json = {"Content-type": "application/json"}
     body = {
         "query": {"bool": {"must": [{"exists": {"field": "clientinfo.clientid"}}]}},
         "size": 10000,
     }
 
-    req_ids = requests.post(url, headers=headers, json=body)
+    req_ids = requests.post(url, headers=header_cont_type_json, json=body)
 
     hits = req_ids.json()["hits"]["hits"]
 
@@ -100,7 +100,6 @@ while True:
     # Scroll API per ottenere molti dati di telemetria
     # Il parametro scroll indica per quanto tempo Elastic deve mantenere il contesto dello scroll
     url = f"http://{ELASTIC_ADDRESS}/telemetry/_search?scroll=30s"
-    headers = {"Content-type": "application/json"}
     body = {
         "query": {
             "bool": {
@@ -120,20 +119,19 @@ while True:
         "size": 10000,
     }
 
-    req_scroll_id = requests.post(url, headers=headers, json=body)
+    req_scroll_id = requests.post(url, headers=header_cont_type_json, json=body)
     hits = req_scroll_id.json()["hits"]["hits"]
     scroll_id = req_scroll_id.json()["_scroll_id"]
 
     url = f"http://{ELASTIC_ADDRESS}/_search/scroll"
-    headers = {"Content-type": "application/json"}
     body = {"scroll": "30s", "scroll_id": scroll_id}
 
-    req_telemetry = requests.post(url, headers=headers, json=body)
+    req_telemetry = requests.post(url, headers=header_cont_type_json, json=body)
     this_hits = req_telemetry.json()["hits"]["hits"]
 
     while len(this_hits) > 0:
         hits += this_hits
-        req_telemetry = requests.post(url, headers=headers, json=body)
+        req_telemetry = requests.post(url, headers=header_cont_type_json, json=body)
         this_hits = req_telemetry.json()["hits"]["hits"]
         print("hits: {}".format(len(this_hits)))
 
@@ -155,8 +153,10 @@ while True:
                     total_fed += hit_elmeter["feeding"]
                     total_grid += hit_elmeter["consumption-grid"]
                     total_house += hit_elmeter["consumption-required"]
-                except:
-                    print("Errore nel seguente risultato: {}".format(hit["_source"]))
+                except KeyError as e:
+                    print(f"Chiave non trovata '{e}'. {hit=}")
+                except Exception as e:
+                    print(f"Errore: {e}")
 
         a_client["fed-into-grid"] = round(total_fed, 4)
         a_client["consumed-grid"] = round(total_grid, 4)
@@ -192,6 +192,5 @@ while True:
         billurl = "{}{}-{}".format(
             url, bill["clientinfo"]["clientid"], bill["bill-timestamp"]
         )
-        headers = {"Content-type": "application/json"}
-        req_insert = requests.put(billurl, headers=headers, json=bill)
+        req_insert = requests.put(billurl, headers=header_cont_type_json, json=bill)
         print(req_insert.json())

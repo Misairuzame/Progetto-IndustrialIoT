@@ -129,14 +129,14 @@ class Subscriber:
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_req_event.set)
 
-    async def update(self, *args):
+    async def update(self, **kwargs):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
             print("Skipping the first step to sync all devices...")
             self.started = True
             return
 
-        now: datetime.datetime = args[0]
+        now: datetime.datetime = kwargs.get("current_time")
         json_dict = {}
         # Devo aspettare:
         # - di aver ricevuto tutti i pannelli. Visto che l'inverter attende

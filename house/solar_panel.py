@@ -39,7 +39,7 @@ class SolarPanel:
 
         self.started = False
 
-    async def update(self, *args):
+    async def update(self, **kwargs):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
             print("Skipping the first step to sync all devices...")
@@ -55,7 +55,7 @@ class SolarPanel:
         # viene approssimata dal subscriber, che quindi utilizzerà come
         # dato per i passaggi successivi 115.7265.
 
-        now: datetime.datetime = args[0]
+        now: datetime.datetime = kwargs.get("current_time")
         # Se meteo_info.get_meteo...() fornisce quanta percentuale di
         # nuvole ci sono, (100-meteo_info...) può significare, in prima approssimazione,
         # "quanto sole c'è", e quindi, quanto può produrre un pannello solare.

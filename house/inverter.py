@@ -4,11 +4,11 @@ import time
 import uuid
 
 import paho.mqtt.client as mqtt
-from print_color import print as prnt
+from print_color import print as color_print
 
 
 def print(*args):
-    prnt(*args, color="yellow")
+    color_print(f"{time.time()}\t{__name__}\t", *args, color="yellow")
 
 
 all_topics_panel = "telemetry/panel/#"
@@ -53,7 +53,7 @@ class Inverter:
         # Gli ID dei pannelli partono da 1, ma gli indici partono da 0.
         self.loop.call_soon_threadsafe(self.recv_list[recv_panel - 1].set)
 
-    async def update(self, *args):
+    async def update(self, **kwargs):
         # Salta il primo update per sincronizzarsi con tutti i dispositivi
         if not self.started:
             print("Skipping the first step to sync all devices...")

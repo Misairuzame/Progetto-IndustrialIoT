@@ -32,7 +32,9 @@ class TimeManager:
         self.subscribers.append(module)
 
     async def tick(self):
-        await asyncio.gather(*(s.update(self.current) for s in self.subscribers))
+        await asyncio.gather(
+            *(s.update(current_time=self.current) for s in self.subscribers)
+        )
         self.current += self.step
 
     async def run(self, steps=None):

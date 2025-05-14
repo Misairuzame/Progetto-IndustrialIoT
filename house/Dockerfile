@@ -21,7 +21,8 @@ ARG STACK_VERSION
 
 RUN apt-get install -y wget apt-transport-https gpg
 RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/$(echo $STACK_VERSION | cut -f1 -d'.').x/apt stable main" | tee /etc/apt/sources.list.d/elastic-$(echo $STACK_VERSION | cut -f1 -d'.').x.list
+RUN echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/$(echo $STACK_VERSION | cut -f1 -d'.').x/apt stable main" | \
+    tee /etc/apt/sources.list.d/elastic-"$(echo $STACK_VERSION | cut -f1 -d'.')".x.list
 RUN apt-get update && apt-get install -y filebeat=${STACK_VERSION}
 # Versione senza uso della variabile STACK_VERSION:
 #RUN echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | tee /etc/apt/sources.list.d/elastic-9.x.list
