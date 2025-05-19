@@ -35,8 +35,18 @@ my_qos = 2
 
 
 class Subscriber:
-    def __init__(self, simulation_start: datetime.datetime, port=1883):
+    def __init__(
+        self,
+        simulation_start: datetime.datetime,
+        num_of_panels: int,
+        max_tot_prod: int,
+        max_charge_wh: int,
+        port=1883,
+    ):
         self.simulation_start = simulation_start
+        self.num_of_panels = num_of_panels
+        self.max_tot_prod = max_tot_prod
+        self.max_charge_wh = max_charge_wh
 
         self.current_panels = {}
         self.current_batteries = {}
@@ -83,6 +93,9 @@ class Subscriber:
                 "clientid": self.client_id,
                 "clientname": client_name,
                 "position": {"lat": latitude, "lon": longitude},
+                "number_of_panels": self.num_of_panels,
+                "max_total_production": self.max_tot_prod,
+                "max_storage_capacity": self.max_charge_wh,
                 "timestamp": self.simulation_start.timestamp(),
             }
         }

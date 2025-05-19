@@ -18,8 +18,10 @@ topic_consumption_grid = "telemetry/electricpanel/consumption-grid"
 topic_feeding = "telemetry/electricpanel/feeding"
 topic_consumption_required = "telemetry/electricpanel/consumption-required"
 
+topic_internal_totalpanels = "internal/totalpanels"
 topic_internal_tofeed = "internal/tofeed"
-topic_internal_getfombatteries = "internal/getfrombatteries"
+topic_internal_getfrombatteries = "internal/getfrombatteries"
+topic_internal_chargebatteries = "internal/chargebatteries"
 topic_internal_getfromgrid = "internal/getfromgrid"
 
 my_qos = 2
@@ -28,6 +30,7 @@ my_qos = 2
 class ElectricPanel:
     def __init__(self, start_time, port=1883):
         self.start_time = start_time
+        self.total_panels = 0
         self.get_from_grid = 0
         self.feed_into_grid = 0
 
@@ -42,6 +45,7 @@ class ElectricPanel:
 
         self.mqttc.connect("localhost", port, 60)
 
+        self.received_total_panels_event = asyncio.Event()
         self.received_get_from_grid_event = asyncio.Event()
         self.received_feed_into_grid_event = asyncio.Event()
 
@@ -52,11 +56,15 @@ class ElectricPanel:
         self.started = False
 
     def on_connect(self, mqttc, obj, flags, rc, properties):
+        mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
         mqttc.subscribe(topic_internal_tofeed, qos=my_qos)
         mqttc.subscribe(topic_internal_getfromgrid, qos=my_qos)
 
     def on_message(self, mqttc, obj, msg):
-        if msg.topic == topic_internal_getfromgrid:
+        if msg.topic == topic_internal_totalpanels:
+            self.total_panels = struct.unpack("f", msg.payload)[0]
+            self.loop.call_soon_threadsafe(self.received_total_panels_event.set)
+        elif msg.topic == topic_internal_getfromgrid:
             self.get_from_grid = struct.unpack("f", msg.payload)[0]
             self.loop.call_soon_threadsafe(self.received_get_from_grid_event.set)
         elif msg.topic == topic_internal_tofeed:
@@ -83,28 +91,48 @@ class ElectricPanel:
         )
         print(f"Pub on '{topic_consumption_required}': {consumption_required}")
 
-        # Simulazione: il quadro elettrico "chiede" energia alle batterie, se è possibile le batterie
-        # gliela forniscono tutta, sennò (per semplicità) non gliene forniscono alcuna e tutta la
-        # corrente viene presa dalla rete elettrica.
+        # Aspetto di ricevere la produzione di tutti i pannelli.
+        # A quel punto posso usare l'energia prodotta dai pannelli per il consumo della casa
+        await asyncio.gather(self.received_total_panels_event.wait())
+        remaining_consumption = consumption_required - self.total_panels
+
+        # Se l'energia è sufficiente a coprire il consumo della casa in questo momento,
+        # allora ne chiedo 0 alle batterie e l'energia restante viene inserita nelle
+        # batterie, se possibile - in alternativa viene immessa in rete.
+        # Altrimenti, chiedo alle batterie di coprire il consumo richiesto, e quindi
+        # le caricherò di 0
+        get_from_batteries = max(remaining_consumption, 0)
+        charge_to_batteries = max(-remaining_consumption, 0)
+
+        # Chiedo energia alle batterie (può essere 0)
         _ = self.mqttc.publish(
-            topic_internal_getfombatteries,
-            struct.pack("f", consumption_required),
+            topic_internal_getfrombatteries,
+            struct.pack("f", get_from_batteries),
             qos=my_qos,
         )
-        print(f"Pub on '{topic_internal_getfombatteries}': {consumption_required}")
+        print(f"Pub on '{topic_internal_getfrombatteries}': {get_from_batteries}")
 
-        # Devo aver ricevuto get_from_grid per poter pubblicare
+        # Aspetto il messaggio di consumo dalla rete, che sarà 0, per sincronizzarmi
         await asyncio.gather(self.received_get_from_grid_event.wait())
         pkd_consumption = struct.pack("f", self.get_from_grid)
         _ = self.mqttc.publish(topic_consumption_grid, pkd_consumption, qos=my_qos)
         print(f"Pub on '{topic_consumption_grid}': {self.get_from_grid}")
 
-        # Devo aver ricevuto feed_into_grid per poter pubblicare
+        # Carico le batterie con l'energia rimanente (può essere 0)
+        _ = self.mqttc.publish(
+            topic_internal_chargebatteries,
+            struct.pack("f", charge_to_batteries),
+            qos=my_qos,
+        )
+        print(f"Pub on '{topic_internal_chargebatteries}': {charge_to_batteries}")
+
+        # Aspetto di sapere quanta corrente verrà immessa in rete
         await asyncio.gather(self.received_feed_into_grid_event.wait())
         pkd_feed = struct.pack("f", self.feed_into_grid)
         _ = self.mqttc.publish(topic_feeding, pkd_feed, qos=my_qos)
         print(f"Pub on '{topic_feeding}': {self.feed_into_grid}")
 
+        self.received_total_panels_event.clear()
         self.received_get_from_grid_event.clear()
         self.received_feed_into_grid_event.clear()
 

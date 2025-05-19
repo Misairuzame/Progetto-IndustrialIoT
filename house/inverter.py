@@ -64,7 +64,7 @@ class Inverter:
 
         total_panels = struct.pack("f", self.total_panels)
         _ = self.mqttc.publish(topic_internal_totalpanels, total_panels, qos=my_qos)
-        print(f"Pub on '{topic_internal_totalpanels}': {total_panels}")
+        print(f"Pub on '{topic_internal_totalpanels}': {self.total_panels}")
 
         for e in self.recv_list:
             e.clear()

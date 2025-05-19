@@ -4,7 +4,6 @@ import struct
 import time
 import uuid
 
-import meteo_info
 import my_functions
 import paho.mqtt.client as mqtt
 from print_color import print as color_print
@@ -24,10 +23,13 @@ class SolarPanel:
     composto da più pannelli solari.
     """
 
-    def __init__(self, panel_id, start_time, port=1883):
+    def __init__(
+        self, panel_id, start_time, max_panel_production, meteo_man, port=1883
+    ):
         self.panel_id = panel_id
-        self.max_panel_production = 250
         self.start_time = start_time
+        self.max_panel_production = max_panel_production
+        self.meteo_man = meteo_man
 
         mqtt_client_name = "pub-panel" + str(self.panel_id) + "-"
         mqtt_rand_id = str(uuid.uuid4())[: 23 - len(mqtt_client_name)]
@@ -56,18 +58,20 @@ class SolarPanel:
         # dato per i passaggi successivi 115.7265.
 
         now: datetime.datetime = kwargs.get("current_time")
-        # Se meteo_info.get_meteo...() fornisce quanta percentuale di
-        # nuvole ci sono, (100-meteo_info...) può significare, in prima approssimazione,
-        # "quanto sole c'è", e quindi, quanto può produrre un pannello solare.
-        # Inoltre si moltiplica per un valore casuale per rendere i dati un po' più
-        # differenziati fra loro.
-        power = (
-            my_functions.calcola_produzione_pannello(
-                self.start_time, now, self.max_panel_production
-            )
-            * random.uniform(0.8, 1)
-            * ((100 - meteo_info.get_meteo_internal()) / 100)
+
+        power = my_functions.calcola_produzione_pannello(
+            self.start_time, now, self.max_panel_production
         )
+
+        # Meteo
+        power *= (100 - self.meteo_man.get_meteo()) / 100
+
+        # Un po' di randomicità nella produzione
+        power *= random.uniform(0.90, 1.00)
+
+        # Randomicità "forte" con bassa probabilità, es. nuvola che passa
+        # e se ne va velocemente
+        power *= random.gauss(1.0, 0.02)
 
         pkd_power = struct.pack("f", power)
         _ = self.mqttc.publish(self.topic, pkd_power, qos=my_qos)

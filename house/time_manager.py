@@ -2,6 +2,12 @@ import asyncio
 import time
 from datetime import datetime, timedelta
 
+from print_color import print as color_print
+
+
+def print(*args):
+    color_print(f"\n{time.time()}\t{__name__}\t", *args, color="white", format="bold")
+
 
 class TimeManager:
     def __init__(self, start: datetime, step: timedelta, speed: float = 5.0):
@@ -40,7 +46,7 @@ class TimeManager:
     async def run(self, steps=None):
         i = 0
         while not steps or i < steps:
-            print(f"\n[TICK] Simulated time: {self.current}")
+            print(f"[TICK] Simulated time: {self.current}")
             await self.tick()
             time.sleep(self.speed)
             i += 1

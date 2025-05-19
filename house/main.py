@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import charge_controller
 import electric_panel
 import inverter
+import meteo_manager
 import solar_panel
 import subscriber
 from time_manager import TimeManager
@@ -53,36 +54,59 @@ async def main():
     )
 
     # Crea i moduli
-    # Controller di carica
-    char_contr = charge_controller.ChargeController()
+    # Gestore del meteo
+    meteo_man = meteo_manager.MeteoManager()
 
     # Quadro elettrico
     el_panel = electric_panel.ElectricPanel(simulation_start)
 
-    # Subscriber (gateway)
-    subscr = subscriber.Subscriber(simulation_start)
-
     # Pannelli solari
     num_of_panels = 0
 
-    r = random.random()
+    # Produzione massima teorica dei pannelli in W
+    max_panel_production = 400
 
-    if r < 0.65:
-        num_of_panels = random.randint(4, 8)  # Impianto medio
-    elif r < 0.95:
-        num_of_panels = random.randint(9, 12)  # Grande impianto
+    roll = random.random()
+
+    # Scegliamo, con un po' di casualità, le dimensioni gli impianti fotovoltaici,
+    # sia il numero di pannelli che la dimensione (coerente) del sistema di accumulo
+    if roll < 0.45:
+        # Da 2 kW a 3.2 kW
+        num_of_panels = random.randint(5, 8)
+        storage_capacity_wh = random.randint(3, 5)
+    elif roll < 0.95:
+        # Da 3.6 kW a 6 kW
+        num_of_panels = random.randint(9, 15)
+        storage_capacity_wh = random.randint(6, 10)
     else:
-        num_of_panels = random.randint(13, 20)  # Impianto enorme / off-grid
+        # Da 6.4 kW a 8 kW
+        num_of_panels = random.randint(16, 20)
+        storage_capacity_wh = random.randint(11, 15)
 
-    print(f"Spawning {num_of_panels} panels")
+    storage_capacity_kwh = storage_capacity_wh * 1000
+    max_total_prod = max_panel_production * num_of_panels
+
     solar_panels = [
-        solar_panel.SolarPanel(i, simulation_start) for i in range(1, num_of_panels + 1)
+        solar_panel.SolarPanel(i, simulation_start, max_panel_production, meteo_man)
+        for i in range(1, num_of_panels + 1)
     ]
+
+    # Controller di carica
+    char_contr = charge_controller.ChargeController(storage_capacity_kwh)
+
+    # Subscriber (gateway)
+    subscr = subscriber.Subscriber(
+        simulation_start,
+        num_of_panels,
+        max_total_prod,
+        storage_capacity_kwh,
+    )
 
     # Inverter
     invert = inverter.Inverter(simulation_start, num_of_panels)
 
     # Iscrivi i moduli al time manager
+    tm.subscribe(meteo_man)
     tm.subscribe(char_contr)
     tm.subscribe(el_panel)
     for panel in solar_panels:
