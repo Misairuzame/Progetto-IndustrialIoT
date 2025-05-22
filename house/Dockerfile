@@ -26,11 +26,14 @@ RUN MAJOR_VERSION="$(echo $STACK_VERSION | cut -f1 -d'.')"; \
     echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/${MAJOR_VERSION}.x/apt stable main" \
     | tee /etc/apt/sources.list.d/elastic-"${MAJOR_VERSION}".x.list
 RUN apt-get update && apt-get install -y filebeat=${STACK_VERSION}
+
 # Versione senza uso della variabile STACK_VERSION:
 #RUN echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | tee /etc/apt/sources.list.d/elastic-9.x.list
 #RUN apt-get update && apt-get install -y filebeat
 
 COPY filebeat/filebeat.yml /etc/filebeat/filebeat.yml
+# Filebeat config must only be writable by the owner
+RUN chmod go-w /etc/filebeat/filebeat.yml
 
 # Make tmux pretty
 RUN apt-get install -y git

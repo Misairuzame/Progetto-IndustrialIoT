@@ -141,7 +141,7 @@ while True:
         a_client = {}
         a_client["clientinfo"] = client
         a_client["bill-timestamp"] = int(current.timestamp())
-        a_client["period"] = "1w"
+        a_client["period"] = f"{bill_days} days"
 
         total_fed = 0
         total_grid = 0

@@ -28,8 +28,10 @@ my_qos = 2
 
 
 class ElectricPanel:
-    def __init__(self, start_time, port=1883):
+    def __init__(self, start_time, house_profile, port=1883):
         self.start_time = start_time
+        self.house_profile = house_profile
+
         self.total_panels = 0
         self.get_from_grid = 0
         self.feed_into_grid = 0
@@ -81,7 +83,7 @@ class ElectricPanel:
         now: datetime.datetime = kwargs.get("current_time")
 
         consumption_required = my_functions.calcola_consumo_intervallo(
-            self.start_time, now
+            self.start_time, now, self.house_profile
         ) * random.uniform(0.75, 1.25)
         # Con un po' di randomicità nel consumo
 

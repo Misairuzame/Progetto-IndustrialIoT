@@ -67,34 +67,6 @@ y = [
     750,
 ]
 
-# Secondo GPT.....
-y_realistico = [
-    0.3,  # 00:00 - 1:00 (bassa, solo frigorifero e standby)
-    0.3,  # 01:00 - 2:00 (bassa, solo frigorifero e standby)
-    0.3,  # 02:00 - 3:00 (bassa, solo frigorifero e standby)
-    0.3,  # 03:00 - 4:00 (bassa, solo frigorifero e standby)
-    0.4,  # 04:00 - 5:00 (bassa, solo frigorifero e standby)
-    0.6,  # 05:00 - 6:00 (leggero aumento con riscaldamento/caffè, ecc.)
-    1.0,  # 06:00 - 7:00 (un po' più alto per preparazione della colazione)
-    1.2,  # 07:00 - 8:00 (preparazione colazione e prime attività domestiche)
-    1.4,  # 08:00 - 9:00 (attività domestiche, luci, riscaldamento)
-    0.7,  # 09:00 - 10:00 (bassa, casa vuota o semi-vuota)
-    0.6,  # 10:00 - 11:00 (bassa, casa vuota o semi-vuota)
-    0.6,  # 11:00 - 12:00 (bassa, casa vuota o semi-vuota)
-    0.7,  # 12:00 - 13:00 (leggera attività, ma ancora basso)
-    0.7,  # 13:00 - 14:00 (leggera attività, ma ancora basso)
-    0.8,  # 14:00 - 15:00 (attività leggera, casa semi-vuota)
-    0.8,  # 15:00 - 16:00 (attività leggera, casa semi-vuota)
-    1.0,  # 16:00 - 17:00 (cominciano a tornare a casa, luci accese, TV)
-    1.5,  # 17:00 - 18:00 (preparazione cena, uso più intenso)
-    1.8,  # 18:00 - 19:00 (cena, cucine in uso, forno, frigorifero, luci)
-    1.9,  # 19:00 - 20:00 (cena e post-cena, luci, TV, ecc.)
-    1.5,  # 20:00 - 21:00 (relax, luci, TV, computer)
-    1.2,  # 21:00 - 22:00 (relax, luci, TV, computer)
-    1.0,  # 22:00 - 23:00 (attività leggere, luci)
-    0.6,  # 23:00 - 00:00 (solo frigorifero e dispositivi in stand-by)
-]
-
 # Queste funzioni modellano l'andamento nel tempo del
 # consumo elettrico tipico di una abitazione e della
 # produzione tipica di un pannello solare
@@ -199,6 +171,7 @@ def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
 def calcola_consumo_intervallo(
     start_time: datetime,
     end_time: datetime,
+    house_profile,
     step_minutes: int = 1,
 ) -> float:
     """
@@ -219,9 +192,16 @@ def calcola_consumo_intervallo(
     while current_time < end_time:
         next_time = min(current_time + step, end_time)
         durata_ore = (next_time - current_time).total_seconds() / 3600
-        ora_frazionaria = current_time.hour + current_time.minute / 60
+        # ora_frazionaria = current_time.hour + current_time.minute / 60
 
+        # consumo_ist = consumo_istantaneo_orario_interpolato(ora_frazionaria)
+        # consumo_totale += consumo_ist * durata_ore
+
+        ora_frazionaria = house_profile.adjust_hour(
+            current_time.hour + current_time.minute / 60
+        )
         consumo_ist = consumo_istantaneo_orario_interpolato(ora_frazionaria)
+        consumo_ist *= house_profile.get_daily_factor()
         consumo_totale += consumo_ist * durata_ore
 
         current_time = next_time

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import charge_controller
 import electric_panel
+import house_consumption
 import inverter
 import meteo_manager
 import solar_panel
@@ -57,8 +58,11 @@ async def main():
     # Gestore del meteo
     meteo_man = meteo_manager.MeteoManager()
 
+    # Profilo di consumo della casa
+    house_profile = house_consumption.ConsumptionProfile()
+
     # Quadro elettrico
-    el_panel = electric_panel.ElectricPanel(simulation_start)
+    el_panel = electric_panel.ElectricPanel(simulation_start, house_profile)
 
     # Pannelli solari
     num_of_panels = 0
@@ -107,6 +111,7 @@ async def main():
 
     # Iscrivi i moduli al time manager
     tm.subscribe(meteo_man)
+    tm.subscribe(house_profile)
     tm.subscribe(char_contr)
     tm.subscribe(el_panel)
     for panel in solar_panels:

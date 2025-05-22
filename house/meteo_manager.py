@@ -49,7 +49,7 @@ class MeteoManager:
         # Calcolo il meteo per una giornata intera, le chiamate
         # dello stesso giorno ma in orari diversi restituiranno
         # tutte lo stesso meteo
-        if now.day > self.last_update.day:
+        if now.date() != self.last_update.date():
             self.__update_meteo()
             self.last_update = now
 
