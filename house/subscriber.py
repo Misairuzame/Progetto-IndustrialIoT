@@ -166,9 +166,7 @@ class Subscriber:
             self.recv_electricpanel_cons_req_event.wait(),
         )
 
-        async with aiofiles.open("log.ndjson", "a") as logfile, aiofiles.open(
-            "/app/errors.log", "at"
-        ) as errlog:
+        async with aiofiles.open("log.ndjson", "a") as logfile:
             json_dict["clientid"] = self.client_id
             json_dict["telemetry"] = {}
 
@@ -183,7 +181,7 @@ class Subscriber:
 
             tries = 3
             throw = True
-            # try "tries" times, or stop if everything expected is in json_dict
+            # try "tries" times, or just continue if everything expected is in json_dict
             while tries > 0 and throw:
                 try:
                     _ = json_dict["clientid"]
@@ -201,7 +199,7 @@ class Subscriber:
                 except KeyError as e:
                     print("json_dict key not found:", e)
                     throw = True
-                    await errlog.write(
+                    print(
                         f"Not all fields were present in log ({e} is missing): {json_dict=}, retrying... ({tries=})"
                     )
                     # Time.sleep will block the entire process!
@@ -209,7 +207,7 @@ class Subscriber:
                 except Exception as e:
                     print("json_dict exception:", e)
                     throw = True
-                    await errlog.write(
+                    print(
                         f"Other exception in json_dict ({e}): {json_dict=}, retrying... ({tries=})"
                     )
                     # Time.sleep will block the entire process!
@@ -217,7 +215,7 @@ class Subscriber:
                 tries -= 1
 
             if throw:
-                await errlog.write(
+                print(
                     f"Not all fields were present in log: {json_dict=}, no retries left!"
                 )
                 # make container unhealthy
