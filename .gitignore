@@ -1,7 +1,5 @@
-__pycache__/
 venv/
+__pycache__/
 
 client_bills.json
 log.ndjson
-_*.txt
-_*.py

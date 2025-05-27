@@ -7,22 +7,13 @@ import uuid
 
 import my_functions
 import paho.mqtt.client as mqtt
+from mqtt_topics import *
 from print_color import print as color_print
 
 
 def print(*args):
     color_print(f"{time.time()}\t{__name__}\t", *args, color="cyan")
 
-
-topic_consumption_grid = "telemetry/electricpanel/consumption-grid"
-topic_feeding = "telemetry/electricpanel/feeding"
-topic_consumption_required = "telemetry/electricpanel/consumption-required"
-
-topic_internal_totalpanels = "internal/totalpanels"
-topic_internal_tofeed = "internal/tofeed"
-topic_internal_getfrombatteries = "internal/getfrombatteries"
-topic_internal_chargebatteries = "internal/chargebatteries"
-topic_internal_getfromgrid = "internal/getfromgrid"
 
 my_qos = 2
 

@@ -10,6 +10,7 @@ import aiofiles
 import paho.mqtt.client as mqtt
 import random_coordinates
 from faker import Faker
+from mqtt_topics import *
 from print_color import print as color_print
 
 
@@ -21,15 +22,6 @@ def get_full_name():
     fake = Faker("it_IT")
     return fake.name()
 
-
-all_topics_panel = "telemetry/panel/#"
-topic_chargecontroller = "telemetry/chargecontroller/c1"
-
-topic_elpan_consumption_grid = "telemetry/electricpanel/consumption-grid"
-topic_elpan_feeding = "telemetry/electricpanel/feeding"
-topic_elpan_consumption_required = "telemetry/electricpanel/consumption-required"
-
-topic_internal_totalpanels = "internal/totalpanels"
 
 my_qos = 2
 
@@ -76,11 +68,11 @@ class Subscriber:
     def on_connect(self, mqttc, userdata, flags, rc):
         mqttc.subscribe(all_topics_panel, qos=my_qos)
         mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
-        mqttc.subscribe(topic_chargecontroller, qos=my_qos)
+        mqttc.subscribe(topic_charge, qos=my_qos)
 
-        mqttc.subscribe(topic_elpan_consumption_grid, qos=my_qos)
-        mqttc.subscribe(topic_elpan_feeding, qos=my_qos)
-        mqttc.subscribe(topic_elpan_consumption_required, qos=my_qos)
+        mqttc.subscribe(topic_consumption_grid, qos=my_qos)
+        mqttc.subscribe(topic_feeding, qos=my_qos)
+        mqttc.subscribe(topic_consumption_required, qos=my_qos)
 
         # Alla connessione vengono registrati nel log i dati dell'utente, che
         # verranno poi inviati a Kafka
@@ -123,21 +115,21 @@ class Subscriber:
             self.total_panels = measure
             self.loop.call_soon_threadsafe(self.recv_totalpanels_event.set)
         # telemetry/chargecontroller/c1
-        elif this_topic == topic_chargecontroller:
+        elif this_topic == topic_charge:
             self.current_batteries["total-charge"] = measure
             self.loop.call_soon_threadsafe(self.recv_chargecontroller_event.set)
         # telemetry/electricpanel/consumption-grid
-        elif this_topic == topic_elpan_consumption_grid:
+        elif this_topic == topic_consumption_grid:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_grid_event.set)
         # telemetry/electricpanel/feeding
-        elif this_topic == topic_elpan_feeding:
+        elif this_topic == topic_feeding:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_feeding_event.set)
         # telemetry/electricpanel/consumption-required
-        elif this_topic == topic_elpan_consumption_required:
+        elif this_topic == topic_consumption_required:
             key_name = this_topic.replace("telemetry/electricpanel/", "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_req_event.set)

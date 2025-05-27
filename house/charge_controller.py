@@ -4,19 +4,13 @@ import time
 import uuid
 
 import paho.mqtt.client as mqtt
+from mqtt_topics import *
 from print_color import print as color_print
 
 
 def print(*args):
     color_print(f"{time.time()}\t{__name__}\t", *args, color="red")
 
-
-topic_charge = "telemetry/chargecontroller/c1"
-
-topic_internal_tofeed = "internal/tofeed"
-topic_internal_getfrombatteries = "internal/getfrombatteries"
-topic_internal_getfromgrid = "internal/getfromgrid"
-topic_internal_chargebatteries = "internal/chargebatteries"
 
 my_qos = 2
 

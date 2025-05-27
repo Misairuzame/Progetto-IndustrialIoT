@@ -8,16 +8,13 @@ services:
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
       - xpack.security.audit.enabled=true
-      - ELASTIC_PASSWORD=elastic_password123 # Change this password
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      #- "./elastic/config:/usr/share/elasticsearch/config"
+      # Service token per consentire l'accesso a Kibana
       - "./elastic/config/service_tokens:/usr/share/elasticsearch/config/service_tokens"
-      # Disabilitato, dà errore? E poi forse voglio il db vuoto ad ogni riavvio.
-      #- ./elastic/elasticsearch-data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
     healthcheck:
@@ -49,9 +46,10 @@ services:
     container_name: logstash
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - KAFKA_ADDRESS=kafka-broker:9092
     volumes:
       - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro,Z
-      #- ./logstash/config/jvm.options:/usr/share/logstash/config/jvm.options:ro,Z
+    # Non serve esporle per questo progetto
     #ports:
     #  - "5044:5044"
     #  - "9600:9600"
@@ -75,6 +73,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
+    # Non serve esporle per questo progetto
     #ports:
     #  - "9092:9092"
     #  - "9093:9093"
@@ -106,11 +105,12 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
-    develop:
-      watch:
-      - action: rebuild
-        path: ./house
-        target: /app
+    # Utile durante lo sviluppo
+    #develop:
+    #  watch:
+    #  - action: rebuild
+    #    path: ./house
+    #    target: /app
 
   startup-elastic:
     build: elastic
@@ -138,13 +138,3 @@ services:
     depends_on:
       house:
         condition: service_healthy
-    
-    # Va messo nella "casa"
-    #filebeat:
-    #  image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
-    #  container_name: filebeat
-    #  user: root
-    #  volumes:
-    #    - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
-    #  depends_on:
-    #    - elasticsearch

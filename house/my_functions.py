@@ -13,34 +13,7 @@ energy use, the electricity bill should be $4.32 to $5.48 per day, $132.8 to $16
 $1593.6 to $1992 per year.
 """
 
-y_kWh = [
-    0.5,  # 0:00
-    0.5,
-    0.45,
-    0.4,
-    0.38,  # 4:00
-    0.36,
-    0.38,
-    0.58,
-    1,  # 8:00
-    1.18,
-    0.58,
-    0.38,
-    0.36,  # 12:00
-    0.35,
-    0.34,
-    0.32,
-    0.37,  # 16:00
-    0.4,
-    0.72,
-    1.22,
-    1.7,  # 20:00
-    1.72,
-    1.17,
-    0.75,
-]
-
-y = [
+consumo_orario_kw = [
     500,  # 0:00
     500,
     450,
@@ -134,12 +107,6 @@ def calcola_produzione_pannello(
         # Calcola produzione istantanea
         hour_float = current_time.hour + current_time.minute / 60
 
-        # Mettiamo un po' di randomicità nelle ore, in modo da shiftare un po'
-        # il consumo di energia della casa (sennò i picchi sono sempre nelle stesse ore)
-        # hour_float = (hour_float + random.gauss(0, 5)) % 24
-        # Per uso con la funzione stagionale usare timedelta(hours=random.gauss(...));
-        # aggiungere anche minuti come una round della (parte frazionaria * 60)
-
         # * (max_panel_production / 4.5) è perchè la funzione che modella la produzione
         # del singolo pannello solare va da 0 a 4.5, in questo modo la scaliamo in modo
         # che vada da 0 a max_panel_production
@@ -156,7 +123,7 @@ def calcola_produzione_pannello(
 
 def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
     """
-    Calcola il consumo istantaneo interpolando linearmente tra i valori nella lista `y`.
+    Calcola il consumo istantaneo interpolando linearmente tra i valori nella lista `consumo_orario_kw`.
 
     :param ora_frazionaria: orario come numero decimale, es. 13.5 per 13:30
     :return: consumo istantaneo in Wh
@@ -165,7 +132,10 @@ def consumo_istantaneo_orario_interpolato(ora_frazionaria: float) -> float:
     h1 = (h0 + 1) % 24
     frazione = ora_frazionaria - h0
 
-    return y[h0] + (y[h1] - y[h0]) * frazione
+    return (
+        consumo_orario_kw[h0]
+        + (consumo_orario_kw[h1] - consumo_orario_kw[h0]) * frazione
+    )
 
 
 def calcola_consumo_intervallo(
@@ -192,16 +162,18 @@ def calcola_consumo_intervallo(
     while current_time < end_time:
         next_time = min(current_time + step, end_time)
         durata_ore = (next_time - current_time).total_seconds() / 3600
-        # ora_frazionaria = current_time.hour + current_time.minute / 60
 
-        # consumo_ist = consumo_istantaneo_orario_interpolato(ora_frazionaria)
-        # consumo_totale += consumo_ist * durata_ore
-
+        # Shift casuale in avanti o all'indietro dell'orario per aumentare randomicità
         ora_frazionaria = house_profile.adjust_hour(
             current_time.hour + current_time.minute / 60
         )
+
         consumo_ist = consumo_istantaneo_orario_interpolato(ora_frazionaria)
+
+        # Fattore costante (giorno per giorno) che aumenta o diminuisce il consumo,
+        # sempre per aggiungere randomicità
         consumo_ist *= house_profile.get_daily_factor()
+
         consumo_totale += consumo_ist * durata_ore
 
         current_time = next_time
@@ -210,72 +182,6 @@ def calcola_consumo_intervallo(
 
 
 if __name__ == "__main__":
-    # Esempio di utilizzo
-    start_time = datetime(2023, 5, 4, 17, 0)  # 17:00
-    end_time = datetime(2023, 5, 4, 18, 0)  # 18:00
-
-    start_time_1930 = datetime(2023, 5, 4, 19, 30)  # 19:30
-    end_time_1930 = datetime(2023, 5, 4, 20, 0)  # 20:00
-
-    start_time_cross = datetime(2023, 5, 4, 23, 30)  # 23:30
-    end_time_cross = datetime(2023, 5, 5, 0, 30)  # 00:30 (crossover)
-
-    # Calcolare il consumo dalle 17:00 alle 18:00
-    consumo_17_18 = calcola_consumo_intervallo(start_time, end_time)
-
-    # Calcolare il consumo dalle 19:30 alle 20:00
-    consumo_1930_2000 = calcola_consumo_intervallo(start_time_1930, end_time_1930)
-
-    # Calcolare il consumo dalle 23:30 alle 00:30 (crossover tra giorni)
-    consumo_cross = calcola_consumo_intervallo(start_time_cross, end_time_cross)
-
-    # Mostra i risultati
-    print(f"Consumo dalle 17:00 alle 18:00: {consumo_17_18} Wh")
-    print(f"Consumo dalle 19:30 alle 20:00: {consumo_1930_2000} Wh")
-    print(f"Consumo dalle 23:30 alle 00:30: {consumo_cross} Wh")
-
-    start = datetime(2024, 1, 1, 19, 30)  # 19:30
-    end = datetime(2024, 1, 1, 21, 15)  # 21:15
-    print(
-        f"Consumo stimato 19:30 - 21:15: {calcola_consumo_intervallo(start, end)=} Wh"
-    )
-
-    start = datetime(2024, 1, 1, 0, 0)
-    end = datetime(2024, 1, 2, 0, 0)
-    print(f"Consumo stimato 24h: {calcola_consumo_intervallo(start, end)=} Wh")
-
-    start = datetime(2024, 1, 1, 14, 13)
-    end = datetime(2024, 1, 2, 14, 13)
-    print(f"Consumo stimato 24h (2): {calcola_consumo_intervallo(start, end)=} Wh")
-
-    start = datetime(2024, 1, 1, 0, 0)
-    end = datetime(2024, 1, 2, 0, 0)
-    step = timedelta(hours=1)
-    nxt = start
-    curr = start
-    tot = 0
-    while curr < end:
-        nxt += step
-        tot += calcola_consumo_intervallo(curr, nxt)
-        curr = nxt
-    print(f"Consumo stimato 24h (3): {tot=}")
-
-    start = datetime(2024, 1, 1, 0, 0)
-    end = datetime(2024, 1, 8, 0, 0)
-    print(f"Consumo stimato 1 settimana: {calcola_consumo_intervallo(start, end)=} Wh")
-
-    start = datetime(2024, 1, 1, 0, 0)
-    end = datetime(2024, 1, 8, 0, 0)
-    step = timedelta(hours=1)
-    nxt = start
-    curr = start
-    tot = 0
-    while curr < end:
-        nxt += step
-        tot += calcola_consumo_intervallo(curr, nxt)
-        curr = nxt
-    print(f"Consumo stimato 1 settimana (2): {tot=}")
-
     max_panel_production = 250
 
     inizio = datetime(2025, 5, 4, 10, 15)
@@ -384,4 +290,56 @@ if __name__ == "__main__":
     plt.xlabel("Indice")
     plt.ylabel("Valore")
     plt.grid(True)
+    plt.show()
+
+    ##############################################################################
+
+    # Original function parameters
+    mu_orig = 6
+    sigma_orig = 1.06
+    A_orig = 12
+
+    # Extended function parameters
+    mu_ext = 12
+    sigma_ext = 4
+    peak_ext = 12
+
+    # Generate x values
+    hours = np.linspace(0, 24, 500)
+
+    # Calculate y values for both functions
+    original = [
+        A_orig
+        / math.sqrt(2 * math.pi * sigma_orig**2)
+        * math.exp(-((h - mu_orig) ** 2) / (2 * sigma_orig**2))
+        for h in hours
+    ]
+
+    extended = [
+        peak_ext * math.exp(-((h - mu_ext) ** 2) / (2 * sigma_ext**2)) for h in hours
+    ]
+
+    sigma = 4
+    mu = 12
+    A = 12
+    other = [
+        A
+        / (math.sqrt(2 * math.pi) * sigma)
+        * math.exp(-((h - mu) ** 2) / (2 * sigma**2))
+        for h in hours
+    ]
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        hours, original, label="Original Gaussian (center=6, σ=1.06)", linestyle="--"
+    )
+    plt.plot(hours, extended, label="Extended Gaussian (center=12, σ=4)", linestyle="-")
+    plt.plot(hours, extended, label="Extended Gaussian (stessa area)", linestyle="-")
+    plt.title("Confronto tra Gaussiana Originale e Allargata")
+    plt.xlabel("Ora del giorno")
+    plt.ylabel("Valore della funzione")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()

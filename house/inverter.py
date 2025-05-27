@@ -4,16 +4,13 @@ import time
 import uuid
 
 import paho.mqtt.client as mqtt
+from mqtt_topics import *
 from print_color import print as color_print
 
 
 def print(*args):
     color_print(f"{time.time()}\t{__name__}\t", *args, color="yellow")
 
-
-all_topics_panel = "telemetry/panel/#"
-
-topic_internal_totalpanels = "internal/totalpanels"
 
 my_qos = 2
 
