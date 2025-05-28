@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import json
-import re
 import struct
 import time
 import uuid
@@ -10,7 +9,7 @@ import aiofiles
 import paho.mqtt.client as mqtt
 import random_coordinates
 from faker import Faker
-from mqtt_topics import *
+from mqtt_config import *
 from print_color import print as color_print
 
 
@@ -23,9 +22,6 @@ def get_full_name():
     return fake.name()
 
 
-my_qos = 2
-
-
 class Subscriber:
     def __init__(
         self,
@@ -33,7 +29,6 @@ class Subscriber:
         num_of_panels: int,
         max_tot_prod: int,
         max_charge_wh: int,
-        port=1883,
     ):
         self.simulation_start = simulation_start
         self.num_of_panels = num_of_panels
@@ -44,14 +39,15 @@ class Subscriber:
         self.current_batteries = {}
         self.current_elmeter = {}
 
-        mqtt_client_name = "sub-contatore-"
-        mqtt_rand_id = str(uuid.uuid4())[: 23 - len(mqtt_client_name)]
+        mqtt_client_name = generate_client_name("sub-contatore")
         self.mqttc = mqtt.Client(
-            client_id=mqtt_client_name + mqtt_rand_id, clean_session=False
+            mqtt.CallbackAPIVersion.VERSION2,
+            client_id=mqtt_client_name,
+            clean_session=False,
         )
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_message = self.on_message
-        self.mqttc.connect("localhost", port, 60)
+        self.mqttc.connect(mqtt_address, mqtt_port, 60)
 
         self.recv_totalpanels_event = asyncio.Event()
         self.recv_chargecontroller_event = asyncio.Event()
@@ -65,14 +61,14 @@ class Subscriber:
 
         self.started = False
 
-    def on_connect(self, mqttc, userdata, flags, rc):
-        mqttc.subscribe(all_topics_panel, qos=my_qos)
-        mqttc.subscribe(topic_internal_totalpanels, qos=my_qos)
-        mqttc.subscribe(topic_charge, qos=my_qos)
+    def on_connect(self, mqttc, obj, flags, rc, properties):
+        mqttc.subscribe(topic_panels_wildcard, qos=mqtt_qos)
+        mqttc.subscribe(topic_internal_totalpanels, qos=mqtt_qos)
+        mqttc.subscribe(topic_charge, qos=mqtt_qos)
 
-        mqttc.subscribe(topic_consumption_grid, qos=my_qos)
-        mqttc.subscribe(topic_feeding, qos=my_qos)
-        mqttc.subscribe(topic_consumption_required, qos=my_qos)
+        mqttc.subscribe(topic_consumption_grid, qos=mqtt_qos)
+        mqttc.subscribe(topic_feeding, qos=mqtt_qos)
+        mqttc.subscribe(topic_consumption_required, qos=mqtt_qos)
 
         # Alla connessione vengono registrati nel log i dati dell'utente, che
         # verranno poi inviati a Kafka
@@ -97,7 +93,7 @@ class Subscriber:
             logfile.write("\n")
 
     def on_message(self, mqttc, userdata, msg):
-        this_topic = msg.topic
+        this_topic: str = msg.topic
         unpacked = struct.unpack("f", msg.payload)
         measure = round(unpacked[0], 4)
         # Round permette di evitare errori di calcolo con i float
@@ -107,8 +103,8 @@ class Subscriber:
         # decimale. Può essere un primo esempio di pre-processing.
 
         # telemetry/panel/p{n}
-        if re.match("telemetry/panel/.+", this_topic):
-            panel_id = this_topic.replace("telemetry/panel/", "")
+        if this_topic.startswith(topic_panel_prefix):
+            panel_id = this_topic.replace(topic_panel_base, "")
             self.current_panels[panel_id] = measure
         # internal/totalpanels
         elif this_topic == topic_internal_totalpanels:
@@ -120,17 +116,17 @@ class Subscriber:
             self.loop.call_soon_threadsafe(self.recv_chargecontroller_event.set)
         # telemetry/electricpanel/consumption-grid
         elif this_topic == topic_consumption_grid:
-            key_name = this_topic.replace("telemetry/electricpanel/", "")
+            key_name = this_topic.replace(topic_elpanel_base, "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_grid_event.set)
         # telemetry/electricpanel/feeding
         elif this_topic == topic_feeding:
-            key_name = this_topic.replace("telemetry/electricpanel/", "")
+            key_name = this_topic.replace(topic_elpanel_base, "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_feeding_event.set)
         # telemetry/electricpanel/consumption-required
         elif this_topic == topic_consumption_required:
-            key_name = this_topic.replace("telemetry/electricpanel/", "")
+            key_name = this_topic.replace(topic_elpanel_base, "")
             self.current_elmeter[key_name] = measure
             self.loop.call_soon_threadsafe(self.recv_electricpanel_cons_req_event.set)
 
@@ -192,7 +188,8 @@ class Subscriber:
                     print("json_dict key not found:", e)
                     throw = True
                     print(
-                        f"Not all fields were present in log ({e} is missing): {json_dict=}, retrying... ({tries=})"
+                        f"Not all fields were present in log ({e} is missing): "
+                        f"{json_dict=}, retrying... ({tries=})"
                     )
                     # Time.sleep will block the entire process!
                     await asyncio.sleep(0.5)
@@ -213,7 +210,7 @@ class Subscriber:
                 # make container unhealthy
                 import shutil
 
-                shutil.move("/app/log.ndjson", "/app/log-copy.ndjson")
+                shutil.move("log.ndjson", "log-copy.ndjson")
                 raise AssertionError(
                     f"Not all fields are present in this log! {json_dict=}"
                 )

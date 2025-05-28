@@ -49,26 +49,27 @@ BILL_DAYS=7
 Le case simulate sono composte da vari componenti, descritti di seguito:
 ```
 house/
-├── filebeat/             # Configurazione di Filebeat
-├── geoloc/               # File shapefile per la creazione di coordinate casuali
 ├── charge_controller.py  # Controller di carica delle batterie
 ├── electric_panel.py     # Simulazione del quadro elettrico, gestisce gli scambi di energia
-├── house_consumption.py  # Modulo per la generazione e gestione dei consumi energetici
+├── house_consumption.py  # Generazione dei profili di consumo energetico
 ├── inverter.py           # Simulazione dell'inverter, raccoglie la produzione di tutti i pannelli solari
-├── main.py               # Entrypoint del simulatore della casa
 ├── meteo_manager.py      # Gestione delle condizioni meteo simulate
-├── mqtt_topics.py        # Topic MQTT per scambio dati
-├── my_functions.py       # Funzioni di produzione dei pannelli e consumo della casa
-├── random_coordinates.py # Generazione casuale delle coordinate geografiche della casa
 ├── solar_panel.py        # Logica e simulazione dei singoli pannelli solari
 ├── subscriber.py         # Gateway (concentratore) della casa
 └── time_manager.py       # Gestione del tempo simulato
 ```
 
-I componenti si scambiano informazioni localmente tramite messaggi MQTT.
-Sincronizzazione fra i componenti...
-
-
+I componenti si scambiano informazioni localmente tramite messaggi MQTT. Il broker MQTT è uno per casa.
+Per ogni step di simulazione, il flusso delle informazioni è il seguente:
+- Ognuno dei pannelli solari (`solar_panel`) produce una certa quantità di energia, a seconda dell'orario e del meteo attuale (`meteo_manager`)
+- Il quadro elettrico (`electric_panel`) calcola il consumo richiesto attualmente dalla casa, a seconda dell'orario attuale e dal profilo di consumo
+- Quando tutti i pannelli hanno pubblicato la loro produzione, l'inverter (`inverter`) li raccoglie e calcola la produzione totale
+- Il quadro elettrico inizia lo scambio di energia, consumando la corrente dei pannelli solari per coprire l'energia richiesta dalla casa in questo momento:
+    - Se è sufficiente, la restante viene utilizzata per caricare le batterie (`charge_controller`)
+        - Se le batterie, così facendo, si caricano al 100%, il restante viene immesso in rete
+    - Altrimenti, l'energia ancora da fornire viene prelevata dalle batterie
+        - Se le batterie non possono fornirla tutta, la restante viene prelevata dalla rete
+- Il gateway della casa (`subscriber`) raccoglie tutte le informazioni dello step attuale e le scrive su un file di log (`log.ndjson`) che verrà monitorato da Filebeat e inviato a Kafka, il punto di ingresso della soluzione Big Data centralizzata.
 
 <!--
 > [!NOTE]  

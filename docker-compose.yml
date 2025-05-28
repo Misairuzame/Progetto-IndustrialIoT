@@ -106,11 +106,11 @@ services:
       timeout: 30s
       retries: 3
     # Utile durante lo sviluppo
-    #develop:
-    #  watch:
-    #  - action: rebuild
-    #    path: ./house
-    #    target: /app
+    develop:
+      watch:
+      - action: rebuild
+        path: ./house
+        target: /app
 
   startup-elastic:
     build: elastic

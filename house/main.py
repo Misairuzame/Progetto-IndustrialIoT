@@ -32,19 +32,15 @@ def parse_hours_minutes(time_str: str):
 
 
 async def main():
-    # datetime(2025, 1, 1, 0, 0)
     simulation_start = datetime.strptime(
         os.getenv("SIMULATION_START", "2025-01-01 00:00"),
         "%Y-%m-%d %H:%M",
     )
 
-    # timedelta(hours=1)
     simulation_step = parse_hours_minutes(os.getenv("SIMULATION_STEP", "1 hour"))
 
-    # 5
     simulation_speed = float(os.getenv("SIMULATION_SPEED", 5.0))
 
-    # 0
     simulation_how_many_steps = int(os.getenv("SIMULATION_HOW_MANY_STEPS", 0))
 
     # Inizializza il time manager
