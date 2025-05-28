@@ -79,7 +79,7 @@ services:
     #  - "9093:9093"
 
   house:
-    #container_name: house
+    #container_name: house # Non disponibile se sono molteplici (replicas)
     build:
       context: house
       args:
@@ -89,6 +89,7 @@ services:
       - SIMULATION_STEP=${SIMULATION_STEP}
       - SIMULATION_SPEED=${SIMULATION_SPEED}
       - SIMULATION_HOW_MANY_STEPS=${SIMULATION_HOW_MANY_STEPS}
+      - KAFKA_ADDRESS=kafka-broker:9092
     deploy:
       replicas: ${HOUSES}
     depends_on:

@@ -1,5 +1,20 @@
 # Progetto Industrial Internet of Things
-Questo progetto, originariamente creato per l'esame di Industrial Internet of Things, simula un sistema per il monitoraggio energetico di abitazioni, includendo componenti IoT, analisi dati e visualizzazione tramite ELK stack. Il sistema si compone di vari moduli containerizzati che interagiscono attraverso MQTT, Kafka ed Elasticsearch.
+Questo progetto, originariamente creato per l'esame di Industrial Internet of Things, simula un sistema per il monitoraggio energetico di abitazioni con impianti fotovoltaici (pannelli solari e batterie di accumulo). Le case simulate inviano i dati di telemetria a una soluzione Big Data centralizzata per lo storage, analisi e visualizzazione dei dati.
+
+## Tecnologie e strumenti utilizzati
+- Python (con asyncio)
+- MQTT
+- Docker
+- Filebeat
+- Apache Kafka
+- Logstash
+- Elasticsearch
+- Kibana
+
+## Quickstart
+```bash
+docker compose up
+```
 
 ## Struttura del progetto
 ```
@@ -10,7 +25,7 @@ Questo progetto, originariamente creato per l'esame di Industrial Internet of Th
 ├── house/              # Simulazione casa e suoi componenti
 ├── kibana/             # Container Kibana e dashboard
 ├── logstash/           # Configurazione per Logstash
-├── .env                # Variabili d'ambiente
+├── .env                # Variabili d'ambiente per docker-compose
 ├── docker-compose.yml  # Definizione dei servizi Docker
 └── README.md           # Documentazione del progetto
 ```
@@ -22,7 +37,7 @@ Si possono configurare vari parametri della simulazione, attraverso alcune varia
 
 | Variabile | Descrizione |
 |-----------|-------------|
-| `STACK_VERSION` | Versione numerica dello stack da utilizzare. Deve essere un numero esplicito (es. `9.0.0`) e **non** può essere `"latest"`. |
+| `STACK_VERSION` | Versione numerica dello stack da utilizzare. Deve essere un numero esplicito (es. `9.0.0`) e **non** può essere `"latest"`. Vedere [qui](https://hub.docker.com/_/elasticsearch). |
 | `HOUSES` | Numero di case da simulare. Ogni casa consuma circa **150 MB di RAM**. |
 | `SIMULATION_START` | Data e ora di inizio della simulazione nel formato **`"%Y-%m-%d %H:%M"`**. Esempio valido: `"2025-01-01 00:00"`. |
 | `SIMULATION_STEP` | Intervallo di tempo simulato per ogni step. Deve essere una stringa in formato naturale (es. `"1 hour"` o `"2 hours 30 minutes"`). Valori validi: **tra 1 e 24 ore**. |
@@ -55,7 +70,7 @@ house/
 ├── inverter.py           # Simulazione dell'inverter, raccoglie la produzione di tutti i pannelli solari
 ├── meteo_manager.py      # Gestione delle condizioni meteo simulate
 ├── solar_panel.py        # Logica e simulazione dei singoli pannelli solari
-├── subscriber.py         # Gateway (concentratore) della casa
+├── subscriber.py         # Gateway (concentratore) della casa, raccoglie dati da tutti i dispositivi
 └── time_manager.py       # Gestione del tempo simulato
 ```
 
@@ -70,6 +85,14 @@ Per ogni step di simulazione, il flusso delle informazioni è il seguente:
     - Altrimenti, l'energia ancora da fornire viene prelevata dalle batterie
         - Se le batterie non possono fornirla tutta, la restante viene prelevata dalla rete
 - Il gateway della casa (`subscriber`) raccoglie tutte le informazioni dello step attuale e le scrive su un file di log (`log.ndjson`) che verrà monitorato da Filebeat e inviato a Kafka, il punto di ingresso della soluzione Big Data centralizzata.
+
+
+## Big Data pipeline
+![Immagine Bid Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
+
+
+## Dashboard Kibana
+Inserire immagine/i dashboard Kibana
 
 <!--
 > [!NOTE]  

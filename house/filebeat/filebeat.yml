@@ -59,7 +59,7 @@ setup.kibana:
 
 # ------------------------------ Kafka Output ----------------------------------
 output.kafka:
-  hosts: ["kafka-broker:9092"]
+  hosts: ["${KAFKA_ADDRESS:kafka-broker:9092}"]
 
   topic: "unknown"
   topics:

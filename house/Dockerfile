@@ -49,11 +49,10 @@ run ~/.config/tmux/plugins/catppuccin/tmux/catppuccin.tmux
 set -g status-left ""
 set -g status-right '#[fg=#{@thm_crust},bg=#{@thm_teal}] session: #S '
 
-# Ensure that everything on the right side of the status line
-# is included.
+# Ensure that everything on the right side of the status line is included.
 set -g status-right-length 100
 EOF
 
 COPY . .
 
-CMD ["bash", "house-new.sh"]
+CMD ["bash", "house.sh"]
