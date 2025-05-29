@@ -88,8 +88,14 @@ Per ogni step di simulazione, il flusso delle informazioni è il seguente:
 
 
 ## Big Data pipeline
-![Immagine Bid Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
+![Immagine Big Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
 
+La Big Data pipeline realizzata si compone delle seguenti tecnologie:
+- **Apache Kafka** è il punto di ingresso dell'intera soluzione. Grazie alle sue elevate prestazioni è un'ottima scelta per ricevere i dati di telemetria inviati dalle case (tramite Filebeat)
+- Il resto della pipeline è composto dallo **stack Elastic**:
+    - **Logstash** fa il *pull* dei dati da Kafka, li pre-processa (rimuove alcuni campi per snellire il payload e ne trasforma altri per prepararli) e li manda ad Elasticsearch
+    - **Elasticsearch** si occupa dello storage dei dati di telemetria, e ne permette il recupero e l'elaborazione (ad esempio per la creazione delle bollette)
+    - **Kibana** consente la visualizzazione dei dati attraverso le dashboard create
 
 ## Dashboard Kibana
 Inserire immagine/i dashboard Kibana
