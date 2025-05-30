@@ -52,7 +52,6 @@ class ChargeController:
         elif msg.topic == topic_internal_chargebatteries:
             charge_batt = struct.unpack("f", msg.payload)[0]
             feed_into_grid = self.charge_batteries(charge_batt)
-            # publish_and_print(self.mqttc, topic_internal_tofeed, feed_into_grid)
             self.mqtt_publish(topic_internal_tofeed, feed_into_grid)
             self.loop.call_soon_threadsafe(self.recv_chargebatteries_event.set)
 

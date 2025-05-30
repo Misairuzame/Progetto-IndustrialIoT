@@ -3,7 +3,6 @@ import datetime
 import random
 import struct
 import time
-import uuid
 
 import consumption_functions
 import paho.mqtt.client as mqtt
@@ -102,7 +101,7 @@ class ElectricPanel:
         self.mqtt_publish(topic_consumption_grid, self.get_from_grid)
 
         # Carico le batterie con l'energia rimanente (può essere 0)
-        self.mqtt_publish(topic_internal_getfrombatteries, charge_to_batteries)
+        self.mqtt_publish(topic_internal_chargebatteries, charge_to_batteries)
 
         # Aspetto di sapere quanta corrente verrà immessa in rete
         await asyncio.gather(self.received_feed_into_grid_event.wait())
