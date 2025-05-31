@@ -22,18 +22,6 @@ Poi aprire un browser e collegarsi all'indirizzo di Kibana (di default, http://l
 > ![Impostazione Time Window Kibana](images/kibana-time-window.png "Time Window Kibana")
 
 
-Per vedere nel dettaglio il funzionamento di una delle case:
-```bash
-docker exec -it nome-container-casa tmux -u attach
-```
-Ad esempio:
-```bash
-docker exec -it progetto-industrialiot-house-1 tmux -u attach
-```
-![Simulazione Casa Tmux 1](images/house-tmux-1.png "Casa Tmux 1")
-![Simulazione Casa Tmux 2](images/house-tmux-2.png "Casa Tmux 2")
-
-
 ## Dashboard Kibana
 ![Dashboard Kibana 1](images/kibana-dashboard-1.png "Dashboard 1")
 ![Dashboard Kibana 2](images/kibana-dashboard-2.png "Dashboard 2")
@@ -43,12 +31,12 @@ docker exec -it progetto-industrialiot-house-1 tmux -u attach
 ## Struttura del progetto
 ```
 .
-├── altro/              # Script ausiliari, leftover e strumenti di test/simulazione
 ├── elaboration/        # Elaborazione dati per generazione bollette
 ├── elastic/            # Container Elasticsearch con configurazioni
 ├── house/              # Simulazione casa e suoi componenti
 ├── kibana/             # Container Kibana e dashboard
 ├── logstash/           # Configurazione per Logstash
+├── plot/               # Utilities per plottare i dati di una casa
 ├── .env                # Variabili d'ambiente per docker-compose
 ├── docker-compose.yml  # Definizione dei servizi Docker
 └── README.md           # Documentazione del progetto
@@ -80,7 +68,7 @@ SIMULATION_SPEED=5
 SIMULATION_HOW_MANY_STEPS=0
 BILL_DAYS=7
 ```
-> [!IMPORTANT]  
+> [!NOTE]  
 > La simulazione è più affidabile con un SIMULATION_STEP il più piccolo possibile ("1 hour"). Più si aumenta la lunghezza dello step, meno la simulazione sarà accurata.
 
 
@@ -121,6 +109,45 @@ La Big Data pipeline realizzata si compone delle seguenti tecnologie:
     - **Kibana** consente la visualizzazione dei dati attraverso le dashboard create
 
 ![Immagine Big Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
+
+
+## Utilities "plot"
+Per plottare i dati di una casa, innanzitutto spostarsi nella cartella `plot/` e copiare il suo log dal container:
+```bash
+cd plot/
+docker cp nome-container-casa:/app/log.ndjson .
+```
+Ad esempio:
+```bash
+cd plot/
+docker cp progetto-industrialiot-house-1:/app/log.ndjson .
+```
+
+Poi, per visualizzare il grafico con matplotlib (GUI):
+```bash
+python plot_house.py ./log.ndjson
+```
+Mentre per visualizzare il grafico con plotille (TUI):
+```bash
+python plot_plotille.py ./log.ndjson
+```
+
+![Grafico casa matplotlib](images/house-plot-matplotlib.png "Plot casa matplotlib")
+![Grafico casa plotille](images/house-plot-plotille.png "Plot casa plotille")
+
+
+## Vedere i dati di una casa in tempo reale
+Per vedere nel dettaglio il funzionamento di una delle case in tempo reale, durante la simulazione:
+```bash
+docker exec -it nome-container-casa tmux -u attach
+```
+Ad esempio:
+```bash
+docker exec -it progetto-industrialiot-house-1 tmux -u attach
+```
+![Simulazione Casa Tmux 1](images/house-tmux-1.png "Casa Tmux 1")
+![Simulazione Casa Tmux 2](images/house-tmux-2.png "Casa Tmux 2")
+
 
 
 ## Utilizzo di memoria dei vari container

@@ -5,10 +5,13 @@ import sys
 
 import plotille
 
+"""
+Uso: python plot_plotille.py [path/to/log.ndjson]
+"""
+
 log_file_path = "log.ndjson"
 if len(sys.argv) > 1:
     log_file_path = sys.argv[1]
-
 
 with open(log_file_path) as f:
     lines = f.readlines()
@@ -42,7 +45,7 @@ for line in lines:
     except:
         pass
 
-# Crea il grafico
+# Grafico
 fig = plotille.Figure()
 fig.width = int(os.getenv("PLOT_WIDTH", 200))
 fig.height = int(os.getenv("PLOT_HEIGHT", 25))

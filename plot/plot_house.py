@@ -15,43 +15,30 @@ x = []
 p1_power = 0
 
 log_file_path = "log.ndjson"
-clientid = None
+
+"""
+Uso: python plot_house.py [path/to/log.ndjson]
+"""
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         log_file_path = sys.argv[1]
-    if len(sys.argv) == 3:
-        clientid = sys.argv[2]
     with open(log_file_path, "rt") as logfile:
         for line in logfile:
             json_obj = json.loads(line)
             try:
-                if clientid and json_obj["clientid"] == clientid:
-                    y.append(json_obj["telemetry"]["batteries"]["total-charge"])
-                    z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
-                    w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
-                    t.append(json_obj["telemetry"]["panels"]["total"])
-                    f.append(json_obj["telemetry"]["elmeter"]["feeding"])
-                    x.append(
-                        datetime.datetime.fromtimestamp(
-                            float(json_obj["telemetry"]["timestamp"])
-                        ).strftime("%d/%m/%y %H:%M")
-                    )
-                    # u.append(json_obj["telemetry"]["panels"]["p1"])
-                    # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
-                else:
-                    y.append(json_obj["telemetry"]["batteries"]["total-charge"])
-                    z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
-                    w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
-                    t.append(json_obj["telemetry"]["panels"]["total"])
-                    f.append(json_obj["telemetry"]["elmeter"]["feeding"])
-                    x.append(
-                        datetime.datetime.fromtimestamp(
-                            float(json_obj["telemetry"]["timestamp"])
-                        ).strftime("%Y-%m-%d %H:%M")
-                    )
-                    # u.append(json_obj["telemetry"]["panels"]["p1"])
-                    # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
+                y.append(json_obj["telemetry"]["batteries"]["total-charge"])
+                z.append(json_obj["telemetry"]["elmeter"]["consumption-required"])
+                w.append(json_obj["telemetry"]["elmeter"]["consumption-grid"])
+                t.append(json_obj["telemetry"]["panels"]["total"])
+                f.append(json_obj["telemetry"]["elmeter"]["feeding"])
+                x.append(
+                    datetime.datetime.fromtimestamp(
+                        float(json_obj["telemetry"]["timestamp"])
+                    ).strftime("%Y-%m-%d %H:%M")
+                )
+                # u.append(json_obj["telemetry"]["panels"]["p1"])
+                # p1_power += int(json_obj["telemetry"]["panels"]["p1"])
             except Exception as e:
                 print(e)
                 print(json_obj)
