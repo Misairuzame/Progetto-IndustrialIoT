@@ -1,5 +1,6 @@
 # Progetto Industrial Internet of Things
 Questo progetto, originariamente creato per l'esame di Industrial Internet of Things, simula un sistema per il monitoraggio energetico di abitazioni con impianti fotovoltaici (pannelli solari e batterie di accumulo). Le case simulate inviano i dati di telemetria a una soluzione Big Data centralizzata per lo storage, analisi e visualizzazione dei dati.
+La simulazione include vari fattori casuali, come le caratteristiche dell'impianto fotovoltaico di ogni casa (numero di pannelli e dimensione delle batterie di accumulo), le condizioni meteo (vari livelli di nuvolosità, brutto tempo che abbatte la produzione giornaliera, etc.), il consumo giornaliero della casa (giorni più o meno "carichi" e picchi di consumo in orari diversi) e tiene conto del periodo dell'anno (ad esempio a Gennaio, in inverno, la produzione dei pannelli è molto più bassa che a Luglio, in piena estate).
 
 ## Tecnologie e strumenti utilizzati
 - Python (con asyncio)
