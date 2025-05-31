@@ -4,7 +4,7 @@ Questo progetto, originariamente creato per l'esame di Industrial Internet of Th
 ## Tecnologie e strumenti utilizzati
 - Python (con asyncio)
 - MQTT
-- Docker
+- Docker, Docker compose
 - Filebeat
 - Apache Kafka
 - Logstash
@@ -15,6 +15,30 @@ Questo progetto, originariamente creato per l'esame di Industrial Internet of Th
 ```bash
 docker compose up
 ```
+Poi aprire un browser e collegarsi all'indirizzo di Kibana (di default, http://localhost:5601) per visualizzare le dashboard.
+> [!IMPORTANT]  
+> Impostare correttamente la finestra temporale su Kibana o non si vedranno i dati. Ad esempio, se si è impostato l'inizio della simulazione a "2025-01-01 00:00", il campo "Start date" andrà impostato a quel valore.
+>
+> ![Impostazione Time Window Kibana](images/kibana-time-window.png "Time Window Kibana")
+
+
+Per vedere nel dettaglio il funzionamento di una delle case:
+```bash
+docker exec -it nome-container-casa tmux -u attach
+```
+Ad esempio:
+```bash
+docker exec -it progetto-industrialiot-house-1 tmux -u attach
+```
+![Simulazione Casa Tmux 1](images/house-tmux-1.png "Casa Tmux 1")
+![Simulazione Casa Tmux 2](images/house-tmux-2.png "Casa Tmux 2")
+
+
+## Dashboard Kibana
+![Dashboard Kibana 1](images/kibana-dashboard-1.png "Dashboard 1")
+![Dashboard Kibana 2](images/kibana-dashboard-2.png "Dashboard 2")
+![Dashboard Kibana 3](images/kibana-dashboard-3.png "Dashboard 3")
+
 
 ## Struttura del progetto
 ```
@@ -65,11 +89,11 @@ Le case simulate sono composte da vari componenti, descritti di seguito:
 ```
 house/
 ├── charge_controller.py  # Controller di carica delle batterie
-├── electric_panel.py     # Simulazione del quadro elettrico, gestisce gli scambi di energia
+├── electric_panel.py     # Quadro elettrico, gestisce gli scambi di energia
 ├── house_consumption.py  # Generazione dei profili di consumo energetico
-├── inverter.py           # Simulazione dell'inverter, raccoglie la produzione di tutti i pannelli solari
+├── inverter.py           # Inverter, raccoglie la produzione di tutti i pannelli solari
 ├── meteo_manager.py      # Gestione delle condizioni meteo simulate
-├── solar_panel.py        # Logica e simulazione dei singoli pannelli solari
+├── solar_panel.py        # Singoli pannelli solari
 ├── subscriber.py         # Gateway (concentratore) della casa, raccoglie dati da tutti i dispositivi
 └── time_manager.py       # Gestione del tempo simulato
 ```
@@ -88,17 +112,24 @@ Per ogni step di simulazione, il flusso delle informazioni è il seguente:
 
 
 ## Big Data pipeline
-![Immagine Big Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
-
 La Big Data pipeline realizzata si compone delle seguenti tecnologie:
-- **Apache Kafka** è il punto di ingresso dell'intera soluzione. Grazie alle sue elevate prestazioni è un'ottima scelta per ricevere i dati di telemetria inviati dalle case (tramite Filebeat)
+- Ogni casa ha il suo **Filebeat** che invia i dati a Kafka
+- **Apache Kafka** è il punto di ingresso dell'intera soluzione. Grazie alle sue elevate prestazioni è un'ottima scelta per ricevere i dati di telemetria inviati dalle case
 - Il resto della pipeline è composto dallo **stack Elastic**:
     - **Logstash** fa il *pull* dei dati da Kafka, li pre-processa (rimuove alcuni campi per snellire il payload e ne trasforma altri per prepararli) e li manda ad Elasticsearch
     - **Elasticsearch** si occupa dello storage dei dati di telemetria, e ne permette il recupero e l'elaborazione (ad esempio per la creazione delle bollette)
     - **Kibana** consente la visualizzazione dei dati attraverso le dashboard create
 
-## Dashboard Kibana
-Inserire immagine/i dashboard Kibana
+![Immagine Big Data pipeline](images/big-data-pipeline.png "Big Data pipeline")
+
+
+## Utilizzo di memoria dei vari container
+- Elasticsearch: 50% della RAM disponibile sull'host
+- Logstash: ~1 GB
+- Kibana: ~600 MB
+- Kafka: ~400 MB
+- Una casa: ~140 MB
+- Elaboration: ~20 MB
 
 <!--
 > [!NOTE]  

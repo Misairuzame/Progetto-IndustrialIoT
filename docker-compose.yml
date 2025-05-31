@@ -45,7 +45,6 @@ services:
     image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
     container_name: logstash
     environment:
-      - LS_JAVA_OPTS=-Xms512m -Xmx512m
       - KAFKA_ADDRESS=kafka-broker:9092
     volumes:
       - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro,Z
@@ -107,11 +106,11 @@ services:
       timeout: 30s
       retries: 3
     # Utile durante lo sviluppo
-    develop:
-      watch:
-      - action: rebuild
-        path: ./house
-        target: /app
+    #develop:
+    #  watch:
+    #  - action: rebuild
+    #    path: ./house
+    #    target: /app
 
   startup-elastic:
     build: elastic
