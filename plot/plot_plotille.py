@@ -13,8 +13,8 @@ log_file_path = "log.ndjson"
 if len(sys.argv) > 1:
     log_file_path = sys.argv[1]
 
-with open(log_file_path) as f:
-    lines = f.readlines()
+with open(log_file_path, "rt") as logfile:
+    lines = logfile.readlines()
 
 timestamps = []
 metrics = {

@@ -88,7 +88,7 @@ class Subscriber:
             }
         }
 
-        with open("log.ndjson", "a") as logfile:
+        with open("log.ndjson", "at") as logfile:
             json.dump(json_dict_clientinfo, logfile)
             logfile.write("\n")
 
@@ -154,7 +154,7 @@ class Subscriber:
             self.recv_electricpanel_cons_req_event.wait(),
         )
 
-        async with aiofiles.open("log.ndjson", "a") as logfile:
+        async with aiofiles.open("log.ndjson", "at") as logfile:
             json_dict["clientid"] = self.client_id
             json_dict["telemetry"] = {}
 
@@ -169,7 +169,9 @@ class Subscriber:
 
             tries = 3
             throw = True
-            # try "tries" times, or just continue if everything expected is in json_dict
+            # Try "tries" times, or just continue if everything expected is in json_dict
+            # This should help in case of desynchronization among house components (which
+            # should not happen)
             while tries > 0 and throw:
                 try:
                     _ = json_dict["clientid"]
@@ -199,7 +201,6 @@ class Subscriber:
                     print(
                         f"Other exception in json_dict ({e}): {json_dict=}, retrying... ({tries=})"
                     )
-                    # Time.sleep will block the entire process!
                     await asyncio.sleep(0.5)
                 tries -= 1
 
@@ -207,7 +208,7 @@ class Subscriber:
                 print(
                     f"Not all fields were present in log: {json_dict=}, no retries left!"
                 )
-                # make container unhealthy
+                # Make container unhealthy
                 import shutil
 
                 shutil.move("log.ndjson", "log-copy.ndjson")

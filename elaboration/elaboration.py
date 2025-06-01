@@ -47,27 +47,32 @@ current = simulation_start
 # per la raccolta (ma anche per l'elaborazione) dei dati.
 
 
-def n_simulated_days_in_real_seconds(days: int):
-    return ((days * 24 * 60 * 60) / simulation_step.seconds) * simulation_speed
+# "bill_days" giorni simulati in secondi reali.
+# Ad esempio, 7 giorni simulati sono 604'800 secondi (sempre simulati),
+# per sapere quanti a secondi reali corrispondono lo divido per i secondi
+# che passano ad ogni step simulato ( / simulation_step.total_seconds() )
+# e lo moltiplico per i secondi che passano fra uno step e l'altro
+# ( * simulation_speed )
+bill_days_in_real_seconds = (
+    (bill_days * 24 * 60 * 60) / simulation_step.total_seconds()
+) * simulation_speed
 
 
 def print_and_sleep():
     print("-" * 86)
     print(
         "Creating report in {} seconds ({} simulated days)".format(
-            n_simulated_days_in_real_seconds(bill_days), bill_days
+            bill_days_in_real_seconds, bill_days
         )
     )
     print(
         "Current real time: {}, real time for next report: {}".format(
             datetime.fromtimestamp(int(time.time())),
-            datetime.fromtimestamp(
-                int(time.time()) + n_simulated_days_in_real_seconds(bill_days)
-            ),
+            datetime.fromtimestamp(int(time.time()) + bill_days_in_real_seconds),
         )
     )
     print("-" * 86)
-    time.sleep(n_simulated_days_in_real_seconds(bill_days))
+    time.sleep(bill_days_in_real_seconds)
 
 
 while True:
@@ -181,8 +186,9 @@ while True:
 
     root_client = {}
     root_client["billing"] = clients_with_bill
-    with open("client_bills.json", "w") as billfile:
-        json.dump(root_client, billfile, indent=5)
+    with open("client_bills.ndjson", "at") as billfile:
+        json.dump(root_client, billfile)
+        billfile.write("\n")
 
     print(clients_with_bill)
 
